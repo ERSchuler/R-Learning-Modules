@@ -1,0 +1,566 @@
+---
+title: "Introduction to Item Response Theory"
+author: "Eric R. Schuler, Ph.D."
+date: "`r Sys.Date()`"
+format: gfm
+---
+
+**Title:** Introduction to Item Response Theory in R
+
+**Speaker:** Eric R. Schuler, Ph.D.
+
+**Description:** This workshop will cover the basics of item response theory (IRT) in R. Specifically, we will cover: 
+
+1. What exactly is IRT
+2. Assumptions of IRT
+3. What is a Rasch model
+4. Running and interpreting a Rasch model 
+5. What is a 2-pl and 3-pl model
+6. Running and interpreting a 2-pl and 3-pl model
+7. Storing the individual's ability score (latent score)
+  
+This workshop assumes familiarity with R (if not, please see our On-Demand Workshop on Using R). Additional resources will be provided. 
+
+
+Set Working Directory
+```{r}
+setwd("F:/BMI Manuscript and code 20220403/IRT Workshop/IRT")
+```
+
+We will now check to see if the packages we need are already installed (if any are missing they will be added)
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+list.of.packages <- c("tidyverse","broom","ggplot2",
+  "plyr","psych","eRM","ltm","mirt",
+  "modelsummary","Gifi")
+#If you do not already have the package installed, the package is retained
+new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
+#Install packages that are not previously installed
+if(length(new.packages)) install.packages(new.packages,repos = "http://cran.us.r-project.org")
+
+library(mirt)            #Multidimensional IRT models
+library(ltm)             #Latent trait models in IRT
+library(eRm)             #Latent trait models
+library(tidyverse)       #data cleaning and modeling functions
+library(broom)           #functions for model summaries
+library(ggplot2)         #visualizations
+library(psych)           #descriptive statistics
+library(plyr)            #functions for data cleaning
+library(modelsummary)    #Functions for creating model tables
+library(Gifi)
+```
+
+# What is item response theory (IRT)?
+
+Item response theory (IRT), sometimes called modern test theory or latent trait theory, is used for psychological measurement to understand a person's ability on a trait as we cannot directly measure the trait we use items to reflect that trait. In IRT, a person's level on a trait is estimated from their responses on test item. Within the IRT model the trait level and properties of the item are considered in the individual's response to an item (Embretson & Reise, 2013, p. 40). There are additional parameters which we will discuss later like the slope of the item characteristic curve. If the slope is steeper it will do a better job at differentiating a person's trait score or $\theta$. 
+
+IRT does not make the same assumptions as classical test theory and is more flexible. Embretson and Reise (2013, p. 15) compare the measurement rules of classical test theory and IRT:
+
+Assumptions for classical test theory (Embretson & Reise, 2013, p. 43):
+
+- The expected value for error over persons is zero
+- Error is not related to other variables (e.g., true score, other error scores, other true scores)
+- Errors are normally distributed within persons and homogenous across persons
+
+Assumptions for IRT (Embretson & Reise, 2013, p. 45 and 48):
+
+- Item characteristic curves (ICCs) have a specified form (we will go over that in a bit)
+- Local independence has been obtained (no further relationships remain between the items when the model parameters are controlled)
+ -- This assumption is difficult to assess and typically omitted in practice (Mair, 2019 p. 99)
+
+IRT has become widely used in educational psychology, testing and measurement (i.e., aptitude tests) both nationally and internationally. 
+
+Old Rules (Classical Test theory):
+
+- Rule 1: The standard error of measurement applies to all scores in a particular population.
+- Rule 2: Longer tests are more reliable than shorter tests.
+- Rule 3: Comparing test scores across multiple forms is optimal when the forms are parallel.
+- Rule 4: Unbaised estimates of item properties depend on having representative samples.
+- Rule 5: Test scores obtain meaning by comparing their position in a norm group.
+- Rule 6: Interval scale properties are achieved by obtaining normal score distributions.
+- Rule 7: Mixed item formats leads to unbalanced impact on test total scores.
+- Rule 8: Change scores cannot be meaningfully compared when initial score levels differ.
+- Rule 9: Factor analysis on binary items produce artifacts rather than factors.
+- Rule 10: Item stimulus features are unimportant compared to psychometric properties.
+
+
+New Rules (under IRT):
+
+- Rule 1: The standard error of measurement differs across scores (or response patterns), but generalizes across populations.
+- Rule 2: Shorter tests can be more reliable than longer tests.
+- Rule 3: Comparing test scores across multiple forms is optimal when test difficulty levels vary between persons.
+- Rule 4: Unbiased estimates of item properties maybe obtained from unrepresentative samples.
+- Rule 5: Test scores have meaning when they are compared for distance from items.
+- Rule 6: Interval scale properties are achieved by applying justifiable measurement models.
+- Rule 7: Mixed item formats can yield optimal test scores.
+- Rule 8: Change scores can be meaningfully compared when initial score levels differ.
+- Rule 9: Factor analysis on raw item data yields a full information factor analysis.
+- Rule 10: Item stimulus features can be directly related to psychometric properties.
+
+I would highly recommend Chapter 2 of Embretson and Reise's (2013) "Item response theory for psychologists" for a deeper discussion on the rules and additional benefits of using IRT.
+
+# Rasch Models (1-PL)
+
+One of the most basic IRT models is the Rasch model, sometimes called a one-parameter logistic model (1-PL). The Rasch model was developed in 1960 and has a dependent variable that is dichotomous (yes/no or correct/incorrect). In the Rasch model, the independent variables are the individual's latent trait score ($\theta$), the level of difficulty for the item ($\beta$), which are combined additively and the item's difficulty is subtracted from the person's ability (Embretson & Reise, 2013 p. 48-49). In a Rasch model, the discrimination parameter, $\alpha$ is constant.
+
+Formula for a Rasch model is:
+
+$$P_{ij} (\theta_j, b_i) = exp(\theta_j - b_i) / 1 + exp(\theta_j - b_i) $$
+In this equation $\theta$ is the individual's underlying ability, or their latent score. The probability of getting the item correct is depicted as a probability (s-curve of sigmoid/ogive). Ability scores typically range from -3 to +3 in application. The higher the person's ability, the higher probability of getting the item correct. The $b_i$ is the difficulty parameter, which is set on the same metric of ability can be higher or lower than 0 on the x-axis. Difficulty determines how the item behaves on the ability trait. Items tha are difficult are shifted to the right (hard items) while easier items are shifted to the left). The point of the difficulty is determined at where the median probability to get the item correct is.
+
+
+As a visual, we have the Item characteristic curve. The y-axis is the probability of yes/correct endorsement while the x-axis is the latent trait score. 
+```{r}
+fit <- RM(Mobility)
+plotICC(fit,2)
+abline(v = 0, col = "grey")
+abline(h = .5, col = "grey")
+```
+
+We can see that the median of the s-curve is a little to the left of the 0 so it is a bit easier. If a person had a latent trait score of 0, they would have a probability to endorse around 70%.
+```{r}
+summary(fit)
+```
+
+Individuals who have higher degrees of knowledge (or higher scores on a trait) will have a higher $\theta$. They will have a higher probability of endorsing items correctly (yes/correct) even when the item difficulty is higher. It is good to have items that are spread across difficulty to better capture an individual's $\theta$.
+
+Let's get started!
+
+Load in the data, we will be using the data examples from Paek & Cole (2019) "Using R for Item Response Theory Model Applications". As we will only be focusing on Rasch, 2-PL and 3-PL models, all of the data examples will be dichotomous in nature. If you are using Likert scaled responses, IRT can be done but you would want to consider using what is called a graded response model or GRM as it would be considered polytomous or more than two response options.
+
+```{r}
+rasch <- read.csv("rasch_example.csv")
+```
+
+This data are 500 responses for test-takers who either had a 0 for the question (incorrect or no) or a 1 (correct or yes). There were 20 dichtomous questions in the dataset.
+
+
+View the data
+```{r}
+head(rasch)
+```
+
+I prefer using the glimpse function
+```{r}
+glimpse(rasch)
+```
+
+# Assumptions of IRT
+
+One of the assumptions of IRT models are that the models are uni-dimensional in nature. There are multidimensional IRT models that allow for multiple dimensions to be assessed within an IRT framework but that is outside of the scope of this workshop. To assess the assumption of uni-dimensionality 
+
+
+**Approach 1:**
+
+Categorical principal component analysis, or princals, is a method for assessing dimesionality. Specifically, we can use dimension reduction techniques to assess the number of underlying dimensions (Mair, 2019, p. 96). 
+
+Fitting a two-dimensional Princals solution and then we plot the corresponding loadings. We would have unidimensionality if all the arrows are approximately pointing in the same direction.
+```{r}
+prin_assess <- princals(rasch)
+plot(prin_assess)
+```
+
+**Approach 2:**
+
+We will run an exploratory factor analysis (EFA) on the tetrachoric correlation matrix and then assess for very simple structure, minimum average partial, and the Bayesian information criteria. 
+
+Extract the tetrachoric correlations
+```{r}
+tc_rasch <- polychoric(rasch)$rho
+```
+
+Obtain the eigen values
+```{r}
+evals <- eigen(tc_rasch)$values
+
+```
+
+Look at the scree plot
+```{r}
+scree(tc_rasch, factors =FALSE)
+```
+
+We will now check for very simple structure (VSS)
+
+First we will look at a visual
+```{r}
+rasch_vss <- vss(tc_rasch, fm = "ml",
+               n.obs =nrow(rasch), 
+               plot =TRUE)
+```
+
+Now looking at the VSS, MAP, and BIC
+```{r}
+rasch_vss
+```
+
+**Approach 3:**
+
+Here we will use an item factor analysis, or IFA, to fit a one-factor and two-factor model and compare the nested model using using a likeilihood ration test and AIC/BIC.
+
+Fit a one-factor model
+```{r}
+rasch_fit1 <- mirt(rasch,1,verbose = FALSE)
+```
+
+Fit a two-factor model
+```{r}
+rasch_fit2 <- mirt(rasch,2,verbose = FALSE)
+```
+
+Now compare using LR, AIC, and BIC
+```{r}
+anova(rasch_fit1,rasch_fit2, verbose=FALSE)
+```
+
+Based on these, we can feel fairly confident that we have unidimensionality.
+
+
+# Rasch Models
+
+A Rasch model is the most basic IRT model that can be run. It allows us to assess the item difficulty for each item (minus the first item due to identification within the estimation process) and after the model is run we can also extract the estimates latent ability score ($\theta$) for each individual. 
+
+We will start with running a Rasch model using the RM() from the eRm package. The eRM package uses conditional maximum likelihood for its estimator. Running the model is sometimes called 'calibrating'
+```{r}
+rm <- RM(rasch)
+```
+
+
+let's take a look at the output, which provides the difficulty of the items with 95% CI.
+```{r}
+summary(rm)
+```
+Item 1 is omitted so that the model can be identifiable and the other parameters estimated. 
+
+Assessing global model fit using the Andersen's LR test
+```{r}
+lrtest <- LRtest(rm)
+lrtest
+```
+Based on this we would not reject the Rasch model.
+
+Martin-Lof LR test which is another test of goodness of fit. This test splits the data at the median to compare subgroups to see if the item set is homogeneous (uni-dimensional).
+```{r}
+MLoef(rm, splitcr="median")
+```
+Also non-significant
+
+
+We can also split the data and asses on two subgroups to see if there are parameter invariance (grouping based on the median raw score). We are using a Bonferonni correction.
+```{r}
+Waldtest(rm)
+```
+
+We can also visualize this split and goodness of fit (it is a bit messy though with a lot of items)
+```{r}
+plotGOF(lrtest, conf=list())
+```
+
+We can also assess infit and outfit mean square and the corresponding t-statistics to see how well the items performed. We are looking for values of outfit and infit closer to 1.
+```{r}
+person_p <- person.parameter(rm)
+itemfit(person_p)
+```
+
+Extracting parameters and show them from easiest to most difficult
+```{r}
+betas <- -coef(rm)
+round(sort(betas),2)
+```
+
+
+We can now look at the Item Characteristic Curve for each item.
+
+The x-axis is the latent trait (standardized) and the y-axis is the probability of getting the item correct. Each of the items has the same slope (or discrimination parameter) as it is held constant in a Rasch model
+
+The plotINFO function produces item and test information.
+```{r}
+plotINFO(rm)
+```
+
+These ICCs help determine the behavior of items (i.e., endorsement probability) along the latent trait (Mair, 2019, p. 104)
+```{r}
+plotICC(rm)
+abline(v = -0.18, col = "grey")
+abline(h = .5, col = "grey")
+```
+
+Let's look at item MC1
+```{r}
+plotICC(rm, item.subset = "MC1")
+abline(v = -0.18, col = "grey")
+abline(h = .5, col = "grey")
+```
+
+We can also have all the items visible, which will allow us to see if all the ICCs are parallel (needed for Rasch) and all have a slope of 1. We can also see what is the easiest and most difficult items.
+```{r}
+plotjointICC(rm, cex=.6, 
+             xlab = "Knowledge",
+             main = "ICCs Test Items")
+```
+
+The Person-item map, or Wright map, highlights the histogram of person ability scores and the dots are the location of the item difficulties. The item difficulty and person ability scores are on the same scale so they can be interpreted the same. We can use this to look at how items and person spread along the ability scale.
+```{r}
+plotPImap(rm, cex.gen = .55)
+```
+
+We can also sort it by difficulty
+```{r}
+plotPImap(rm, cex.gen = .55, sorted = TRUE)
+```
+
+Now that we have looked at the difficulties of the items and assessed fit. We can finally extract estimated latent scores, which can be used in other analyses
+```{r}
+rasch_person <- person.parameter(rm)
+rasch_person
+```
+
+We can also visualize the theta to raw score
+```{r}
+plot(rasch_person)
+```
+
+Now we can add the theta (latent score for each person on the knowledge trait) to the dataset.
+```{r}
+rasch$theta <- rasch_person$theta.table[,1]
+```
+
+Now we will run a t-test to look at differences in knowledge by sex
+
+We will pretend we have a factor in the dataset, first creating it
+```{r}
+rasch$sex <- rep(c("Male","Female"),250)
+rasch$sex <- factor(rasch$sex)
+```
+
+Look at the descriptive statistics
+```{r}
+describeBy(rasch$theta, group = rasch$sex)
+```
+
+Compare differences in latent knowledge by sex
+```{r}
+knowledge_sex <-t.test(theta~sex,
+                       data=rasch)
+knowledge_sex
+```
+
+
+
+# 2-PL Model
+
+A 2-PL extends the Rasch model by not assuming that each item has the same discrimination ($\alpha$). This allows us to have an additional parameter in the model.
+
+
+Formula for a 2-PL model:
+
+$$P_{ij} (\theta_j, b_i, a_i) = exp[a_i(\theta_j - b_i)] / 1 + exp[a_i(\theta_j - b_i)] $$
+
+$\theta$ = ability
+
+$b_i  $  = difficulty parameter
+
+$a_i $   = discrimination parameter (unfixed)
+
+First let's load in the dataset example
+```{r}
+twopl <- read.csv("2pl_example.csv")
+glimpse(twopl)
+```
+
+This data are 1000 responses for test-takers who either had a 0 for the question (incorrect or no) or a 1 (correct or yes). There were 20 dichtomous questions in the dataset.
+
+Normally we would want to screen the data and assess the unidimensionality assumption. For time we are going to skip this as we have already covered it. 
+
+To run a 2pl model, we would have the data and then use ~z1 to denote unidimensionality. The IRT.param= TRUE portion is to produce the item difficulty.
+
+```{r}
+two_pl <- ltm(twopl ~z1, IRT.param = TRUE)
+```
+
+Let's check convergence, if we get a 0 that means it converged normally.
+```{r}
+two_pl$conv
+```
+
+If we look at the summary we can see the item difficulty and item discrimination coefficients
+```{r}
+summary(two_pl)
+```
+
+Inspect the coefficients (rounded to three decimal places)
+
+- "Dffclt" is the item difficulty
+- "Dscrmn" is the item discrimination
+```{r}
+round(coef(two_pl),3)
+```
+
+plot the first 5 items for ICC
+```{r}
+plot(two_pl, item = 1:5, legend =TRUE)
+```
+Items 6 to 10
+```{r}
+plot(two_pl, item = 6:10, legend =TRUE)
+```
+
+Items 11 to 15
+```{r}
+plot(two_pl, item = 11:15, legend =TRUE)
+```
+
+If we look back at the coefficients
+```{r}
+coef(two_pl)
+```
+
+Items that have good discrimination would be between 0.8 to 2.5 (de Ayala, 2009). Items that have discrimination less than .8 would have item characteristic curves that are too flat, while discrimination scores higher than 2.5 would mean that the the items discriminate only within a narrow range of the trait.
+
+We can also assess the goodness of fit using the mirt package, so we would reject the Rasch model.
+```{r}
+twopl.2 <-mirt(twopl, 1,itemtype='2PL')
+M2(twopl.2)
+```
+
+
+Model-data fit and model comparison (move up in code)
+
+We will compare the results of a Rasch model with that of the 2-PL and assess using a likelihood ratio. (Runs but creates an error in R markdown for knitting)
+```{r}
+mod.1pl <- rasch(twopl)
+mod.1pl
+```
+
+```{r}
+anova(mod.1pl,two_pl)
+```
+We can see based on the results that we would reject the null of the Rasch in favor of the 2-PL.
+
+
+
+Extracting estimated latent scores
+```{r}
+ltm::factor.scores(two_pl,method = "EAP")
+```
+
+The ltm package doesn't allow for storing the thetas so we will use a work around using the mirt package
+```{r}
+twopl$theta <- fscores(mirt(twopl, 1,itemtype='2PL'))
+```
+
+Person fit statistics for the 2-PL so that we can assess for any aberrant response patterns ( p < .01)
+```{r}
+person.fit(two_pl)
+```
+
+
+
+# 3-PL Model
+
+The 3-PL model adds a third parameter which is a pseudo-guessing parameter. 
+
+Formula for a 3-PL model:
+
+$$P_{ij} (\theta_j, b_i, a_i, g_i) = g_i + (1-g_i)*(exp[a_i(\theta_j - b_i)] / 1 + exp[a_i(\theta_j - b_i)]) $$
+
+$\theta$ = ability
+
+$b_i$ = difficulty parameter
+
+$g_i$ = guessing parameter
+
+
+Load the data
+```{r}
+threepl <- read.csv("3pl_example.csv")
+glimpse(threepl)
+```
+
+This data are 1,500 responses for test-takers who either had a 0 for the question (incorrect or no) or a 1 (correct or yes). There were 30 dichtomous questions in the dataset.
+
+When running a 3-PL model, it is common to set a prior distribution for the pseudo-guessing parameter to help aid in the convergence of the model (Paek & Cole, 2020, p. 76). The standard prior used in mirt is the normal distribution of the logit transformation of the pseudo-guessing parameter. 
+```{r}
+spec <- 'F = 1-30
+PRIOR = (1-30, g, norm, -1.1, 2)'
+```
+
+Here we are noting that the single factor consists of items 1 to 30. The priors are the distribution of pseudo-guessing (g) that are normally distributed around a mean of -1.1 with a standard deviation of 2 (Paek & Cole, 2020, p. 76).
+
+We can then calibrate the model
+```{r}
+three_pl <- mirt(threepl,model=spec, 
+                 itemtype = "3PL", 
+                 SE=TRUE)
+```
+
+We can check for convergence and other fit indices.
+```{r}
+print(three_pl)
+```
+
+We can then look at the parameters in the output.
+
+- a = item difficulty
+- b = discimination
+- g = guessing parameters
+- u = is the upper asymptote parameter which is fixed in 3PL
+```{r}
+coef(three_pl, IRTpars=TRUE)
+```
+
+ICCs for item 4, we can see the lower asymptote is not 0  since we estimated the guessing parameter
+```{r}
+itemplot(three_pl, 4)
+```
+
+We can look at the test information curve 
+```{r}
+plot(three_pl, type="info")
+```
+
+We can also look at the expected total scores by ability
+```{r}
+plot(three_pl)
+```
+
+Model-data fit
+We can assess if we reject the 3-PL for this dataset
+```{r}
+M2(three_pl)
+```
+
+We can then extract the latent trait
+```{r}
+pl3_fs <- fscores(three_pl, method="EAP", full.scores = TRUE,
+                  full.scores.SE = TRUE)
+head(pl3_fs)
+```
+
+Then we can merge with the data
+```{r}
+threepl$theta <- pl3_fs
+```
+
+
+# Citations:
+
+- De Ayala, R. J. (2013). The theory and practice of item response theory. Guilford Publications.
+- Embretson, S. E., & Reise, S. P. (2013). Item response theory. Psychology Press.
+- Mair, P. (2018). Modern psychometrics with R. Cham: Springer International Publishing.
+- Paek, I., & Cole, K. (2019). Using R for item response theory model applications. Routledge.
+
+# Resources
+
+- https://www.publichealth.columbia.edu/research/population-health-methods/item-response-theory
+- https://bookdown.org/bean_jerry/using_r_for_social_work_research/item-response-theory.html
+- https://statmath.wu.ac.at/people/trusch/IMPS2017/RIRT-Workshop-IMPS-2017Pt2.pdf
+- https://m-clark.github.io/sem/item-response-theory.html
+- https://blog.dominodatalab.com/item-response-theory-r-survey-analysis
+- http://www.thetaminusb.com/intro-measurement-r/irt.html
+- https://www.tandfonline.com/doi/abs/10.1080/15366367.2019.1586404?journalCode=hmes20
+- https://aidenloe.github.io/irtplots.html
+- https://hansjoerg.me/2018/04/23/rasch-in-r-tutorial/ 
+- https://rstudio-pubs-static.s3.amazonaws.com/316159_1ce8a47f848043d4afc65eda4a2653c3.html
+- https://rdrr.io/cran/ltm/man/factor.scores.html
