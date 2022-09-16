@@ -1,0 +1,313 @@
+---
+title: "Module 2 Importing Data and Basic Data Cleaning"
+author: "Eric R. Schuler, Ph.D."
+date: "9/13/2022"
+format: html
+editor: 
+  markdown: 
+    wrap: 72
+---
+
+In this module we will cover:
+
+-   How to import different data types
+-   Perform basic data cleaning (recode, rename, create groups, etc.)
+
+First we will install the packages (if needed) and change some options
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+list.of.packages <- c("tidyverse","haven","forcats","dplyr","readxl",
+                      "plyr","psych","DT", "janitor")
+#If you do not already have the package installed, the package is retained
+new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
+#Install packages that are not previously installed
+if(length(new.packages)) install.packages(new.packages,repos = "http://cran.us.r-project.org")
+
+options(scipen = 999)
+```
+
+We first need to set our working directory to where we have the
+different versions of the data saved
+
+```{r}
+setwd("C:/Users/eschuler/Desktop/r short course/")
+```
+
+## Import the data ----
+
+Most common data type is .csv
+
+```{r csv_import}
+cs<-read.csv("cs.csv", header=TRUE)
+head(cs)
+```
+
+Importing commercial data types
+
+```{r}
+library(haven)
+library(readxl)
+```
+
+For SPSS Directly read as a .sav file type
+
+```{r spss_import}
+data_spss <- read_spss("cs.sav")
+head(data_spss)
+```
+
+For SAS
+
+```{r sas_import}
+data_sas <- read_sas("nations.sas7bdat")
+head(data_sas)
+```
+
+For Stata
+
+```{r stata_import}
+data_stata <- read_stata("cs.dta")
+head(data_stata)
+```
+
+For an excel sheet
+
+```{r}
+data_excel <- readxl::read_excel("cs.xlsx")
+```
+
+## Data inspection
+
+We're now going to examine the names of the columns in our data set and
+look at the first few entries in each column
+
+print the first six cases in the dataset
+
+```{r}
+head(cs)
+```
+
+print the last six cases in the dataset
+
+```{r}
+tail(cs)
+```
+
+print the names for each column/variable
+
+```{r}
+colnames(cs)
+```
+
+Return the structure of the dataset
+
+```{r}
+str(cs)
+```
+
+We can also view the dataset like an excel sheet
+
+```{r}
+View(cs)
+```
+
+# Some basic data cleaning
+
+For this we will turn to another dataset. It is a synthetic dataset that
+is based on a slice of variables from my dissertation dataset. To learn
+more about how to create synthetic datasets see:
+https://www.synthpop.org.uk/get-started.html
+
+```{r}
+library(psych)
+sample_diss <-read.csv("ers_diss_synthetic.csv")
+```
+
+We are going to rename the variable names
+
+```{r}
+colnames(sample_diss) <- c("panas_1","panas_2","panas_3","panas_4","panas_5",
+                      "panas_6","panas_7","panas_8","panas_9","panas_10",
+                      "panas_11","panas_12","panas_13","panas_14","panas_15",
+                      "panas_16","panas_17","panas_18","panas_19","panas_20",
+                      "ces_1","ces_2","ces_3","ces_4","ces_5","ces_6","ces_7",
+                      "sex","age","ptss_total_score")
+```
+
+We can do a quick inspection of the data 1. Data structure
+
+```{r}
+str(sample_diss)
+```
+
+View the data
+
+```{r}
+View(sample_diss)
+```
+
+Describe the data
+
+```{r}
+describe(sample_diss)
+```
+
+Creating factors for sex
+
+```{r}
+sample_diss$sex <- factor(sample_diss$sex, levels = c(1,2), labels = c("Male","Female"))
+```
+
+We can then check frequencies
+
+```{r}
+janitor::tabyl(sample_diss$sex)
+```
+
+Let's say we were interested in creating quartile splits of posttraumatic stress scores
+
+```{r}
+sample_diss$ptss_quartile[sample_diss$ptss_total_score < 6.1] <- 1
+sample_diss$ptss_quartile[sample_diss$ptss_total_score >= 6.1 & 
+                       sample_diss$ptss_total_score <21.2] <- 2
+sample_diss$ptss_quartile[sample_diss$ptss_total_score >= 21.2 & 
+                       sample_diss$ptss_total_score <34] <- 3
+sample_diss$ptss_quartile[sample_diss$ptss_total_score >= 34] <- 4
+
+plyr::count(sample_diss$ptss_quartile)
+```
+
+We could then make it an ordered factor
+
+```{r}
+sample_diss$ptss_quartile <- factor(sample_diss$ptss_quartile,
+                               levels = c(1,2,3,4),
+                               labels = c("Q1","Q2","Q3","Q4"),
+                               ordered = TRUE)
+plyr::count(sample_diss$ptss_quartile)
+```
+
+Collapsing factors
+
+```{r}
+library(forcats)
+
+sample_diss$ptss_qsplit <- fct_collapse(sample_diss$ptss_quartile,
+                                   Low = c("Q1","Q2","Q3"),
+                                   High = c("Q4"))
+
+plyr::count(sample_diss$ptss_qsplit)
+```
+
+A better option would be to use a clinical cut-off score (say 32). For
+this we can try an ifelse function
+
+```{r}
+sample_diss$ptss_cutoff <-ifelse(sample_diss$ptss_total_score >= 32, 1,0)
+sample_diss$ptss_cutoff <- factor(sample_diss$ptss_cutoff,
+                             levels = c(0,1),
+                             labels = c("No", "Yes"))
+janitor::tabyl(sample_diss$ptss_cutoff)
+```
+
+Reverse coding Sometimes in Likert type scales an item is reverse coded.
+The quickest way to do this is to take the maximum value of the scale,
+add 1, then take that number and substract the current score. We will do
+this with a CES item, that the highest value of the item is a 5.
+
+```{r}
+sample_diss$ces_1_reverse <- 6 - sample_diss$ces_1
+```
+
+we can then check visually
+
+```{r}
+View(sample_diss)
+```
+
+Summative scores and average scores we will create an average score for
+our CES items, and total scores for both positive affectivity and
+negative affectivity
+
+```{r}
+sample_diss$ces <- (sample_diss$ces_1 + sample_diss$ces_2 + sample_diss$ces_3 +
+                 sample_diss$ces_4 + sample_diss$ces_5 + sample_diss$ces_6 +
+                 sample_diss$ces_7)/7
+sample_diss$pos_aff <- sample_diss$panas_1 + sample_diss$panas_3 + sample_diss$panas_5 + 
+                  sample_diss$panas_9 + sample_diss$panas_10 + sample_diss$panas_12 + 
+                  sample_diss$panas_14 + sample_diss$panas_16 + sample_diss$panas_17 +
+                  sample_diss$panas_19
+sample_diss$neg_aff <- sample_diss$panas_2 + sample_diss$panas_4 + sample_diss$panas_6 + 
+                  sample_diss$panas_7 + sample_diss$panas_8 + sample_diss$panas_11 + 
+                  sample_diss$panas_13 + sample_diss$panas_15 + sample_diss$panas_18 +
+                  sample_diss$panas_20
+```
+
+Let's see what the descriptives for the total and average scores look
+like. Here we will reference the column numbers to pull just those three
+variables
+
+```{r}
+describe(sample_diss[,35:37])
+```
+
+We can also describe CES by a factor
+
+```{r}
+descript_by_sex <- describeBy(sample_diss[,35:37], group = sample_diss$sex)
+
+table1 <- do.call("rbind", descript_by_sex)
+table1 <- round(table1,2)
+table1
+```
+
+We can write this to a csv file
+
+```{r}
+write.csv(table1, file = "descriptives by sex.csv")
+```
+
+We can also make a sortable and searchable table with the DT package
+
+```{r}
+DT::datatable(table1)
+```
+
+Internal reliability The psych package has a great function to calculate
+internal reliability. To use this we list the columns the ces variables
+are in and include na.rm = TRUE to omit missing observations.
+
+```{r}
+alpha(sample_diss[21:27], na.rm = TRUE)
+```
+
+*Note* We are not going to talk about missing data as that in itself is
+a big topic. If you are interested in ways to assess/handle missingness
+there is a script about that topic in the advanced topics module.
+
+Sometimes we may want to save an object from R to use at a later point.
+In this case, we can save our dataframe as an R object
+
+```{r}
+saveRDS(sample_diss, file = "cleaned_syn_diss.RDS")
+```
+
+We can then clear the environment
+
+```{r}
+rm(list=ls())
+```
+
+And reload the object in if this was a new script
+
+```{r}
+syn_diss_cleaned <- readRDS("cleaned_syn_diss.RDS")
+```
+
+# Reporting R Package Information (versions)
+
+```{r}
+installed.packages()[names(sessionInfo()$otherPkgs), "Version"]
+```

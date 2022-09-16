@@ -1,0 +1,750 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-0.9.449">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+<meta name="author" content="Eric R. Schuler, Ph.D.">
+<meta name="dcterms.date" content="2022-09-13">
+
+<title>Module 2 Importing Data and Basic Data Cleaning</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+span.underline{text-decoration: underline;}
+div.column{display: inline-block; vertical-align: top; width: 50%;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+    color: #aaaaaa;
+  }
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+code span.al { color: #ff0000; font-weight: bold; } /* Alert */
+code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } /* Annotation */
+code span.at { color: #7d9029; } /* Attribute */
+code span.bn { color: #40a070; } /* BaseN */
+code span.bu { } /* BuiltIn */
+code span.cf { color: #007020; font-weight: bold; } /* ControlFlow */
+code span.ch { color: #4070a0; } /* Char */
+code span.cn { color: #880000; } /* Constant */
+code span.co { color: #60a0b0; font-style: italic; } /* Comment */
+code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } /* CommentVar */
+code span.do { color: #ba2121; font-style: italic; } /* Documentation */
+code span.dt { color: #902000; } /* DataType */
+code span.dv { color: #40a070; } /* DecVal */
+code span.er { color: #ff0000; font-weight: bold; } /* Error */
+code span.ex { } /* Extension */
+code span.fl { color: #40a070; } /* Float */
+code span.fu { color: #06287e; } /* Function */
+code span.im { } /* Import */
+code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Information */
+code span.kw { color: #007020; font-weight: bold; } /* Keyword */
+code span.op { color: #666666; } /* Operator */
+code span.ot { color: #007020; } /* Other */
+code span.pp { color: #bc7a00; } /* Preprocessor */
+code span.sc { color: #4070a0; } /* SpecialChar */
+code span.ss { color: #bb6688; } /* SpecialString */
+code span.st { color: #4070a0; } /* String */
+code span.va { color: #19177c; } /* Variable */
+code span.vs { color: #4070a0; } /* VerbatimString */
+code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warning */
+</style>
+
+<script src="Module 2 Importing Data and Basic Data Cleaning_files/libs/clipboard/clipboard.min.js"></script>
+<script src="Module 2 Importing Data and Basic Data Cleaning_files/libs/quarto-html/quarto.js"></script>
+<script src="Module 2 Importing Data and Basic Data Cleaning_files/libs/quarto-html/popper.min.js"></script>
+<script src="Module 2 Importing Data and Basic Data Cleaning_files/libs/quarto-html/tippy.umd.min.js"></script>
+<script src="Module 2 Importing Data and Basic Data Cleaning_files/libs/quarto-html/anchor.min.js"></script>
+<link href="Module 2 Importing Data and Basic Data Cleaning_files/libs/quarto-html/tippy.css" rel="stylesheet">
+<link id="quarto-text-highlighting-styles" href="Module 2 Importing Data and Basic Data Cleaning_files/libs/quarto-html/quarto-syntax-highlighting.css" rel="stylesheet">
+<script src="Module 2 Importing Data and Basic Data Cleaning_files/libs/bootstrap/bootstrap.min.js"></script>
+<link href="Module 2 Importing Data and Basic Data Cleaning_files/libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="Module 2 Importing Data and Basic Data Cleaning_files/libs/bootstrap/bootstrap.min.css" rel="stylesheet">
+
+<script src="Module 2 Importing Data and Basic Data Cleaning_files\libs/htmlwidgets-1.5.4/htmlwidgets.js"></script>
+<link href="Module 2 Importing Data and Basic Data Cleaning_files\libs/datatables-css-0.0.0/datatables-crosstalk.css" rel="stylesheet">
+<script src="Module 2 Importing Data and Basic Data Cleaning_files\libs/datatables-binding-0.23/datatables.js"></script>
+<script src="Module 2 Importing Data and Basic Data Cleaning_files\libs/jquery-3.6.0/jquery-3.6.0.min.js"></script>
+<link href="Module 2 Importing Data and Basic Data Cleaning_files\libs/dt-core-1.11.3/css/jquery.dataTables.min.css" rel="stylesheet">
+<link href="Module 2 Importing Data and Basic Data Cleaning_files\libs/dt-core-1.11.3/css/jquery.dataTables.extra.css" rel="stylesheet">
+<script src="Module 2 Importing Data and Basic Data Cleaning_files\libs/dt-core-1.11.3/js/jquery.dataTables.min.js"></script>
+<link href="Module 2 Importing Data and Basic Data Cleaning_files\libs/crosstalk-1.2.0/css/crosstalk.min.css" rel="stylesheet">
+<script src="Module 2 Importing Data and Basic Data Cleaning_files\libs/crosstalk-1.2.0/js/crosstalk.min.js"></script>
+
+
+</head>
+
+<body class="fullcontent">
+
+<div id="quarto-content" class="page-columns page-rows-contents page-layout-article">
+
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title">Module 2 Importing Data and Basic Data Cleaning</h1>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    <div>
+    <div class="quarto-title-meta-heading">Author</div>
+    <div class="quarto-title-meta-contents">
+             <p>Eric R. Schuler, Ph.D. </p>
+          </div>
+  </div>
+    
+    <div>
+    <div class="quarto-title-meta-heading">Published</div>
+    <div class="quarto-title-meta-contents">
+      <p class="date">September 13, 2022</p>
+    </div>
+  </div>
+    
+  </div>
+  
+
+</header>
+
+<p>In this module we will cover:</p>
+<ul>
+<li>How to import different data types</li>
+<li>Perform basic data cleaning (recode, rename, create groups, etc.)</li>
+</ul>
+<p>First we will install the packages (if needed) and change some options</p>
+<p>We first need to set our working directory to where we have the different versions of the data saved</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">setwd</span>(<span class="st">"C:/Users/eschuler/Desktop/r short course/"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<section id="import-the-data--" class="level2">
+<h2 class="anchored" data-anchor-id="import-the-data--">Import the data —-</h2>
+<p>Most common data type is .csv</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb2"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>cs<span class="ot">&lt;-</span><span class="fu">read.csv</span>(<span class="st">"cs.csv"</span>, <span class="at">header=</span><span class="cn">TRUE</span>)</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="fu">head</span>(cs)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>              country oecd Muslim mrate5 free free_new corrup literacy gdppc
+1         Afghanistan    0      1    257  5.5        3    2.5       NA    NA
+2             Albania    0      1     18  3.0        2    2.4     98.7  5316
+3             Algeria    0      1     39  5.5        3    2.8     69.9  7062
+4             Andorra    0      0      3  1.0        1     NA       NA    NA
+5              Angola    0      0    260  5.5        3    2.0     67.4  2335
+6 Antigua and Barbuda    0      0     12  2.0        1     NA     85.8 12500
+  physicians hunger sanitation f_adlitrate_2000
+1         NA     39         34               21
+2         NA     14         91               77
+3         NA     10         92               57
+4         NA     NA        100               NA
+5       0.08     31         31               NA
+6         NA     NA         95               83</code></pre>
+</div>
+</div>
+<p>Importing commercial data types</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb4"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(haven)</span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(readxl)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>For SPSS Directly read as a .sav file type</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb5"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>data_spss <span class="ot">&lt;-</span> <span class="fu">read_spss</span>(<span class="st">"cs.sav"</span>)</span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="fu">head</span>(data_spss)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 6 × 13
+  country           OECD  muslim    hdi mrate5  free corrup  life literacy gdppc
+  &lt;chr&gt;          &lt;dbl+l&gt; &lt;dbl+l&gt;  &lt;dbl&gt;  &lt;dbl&gt; &lt;dbl&gt;  &lt;dbl&gt; &lt;dbl&gt;    &lt;dbl&gt; &lt;dbl&gt;
+1 Afghanistan    0 [Not… 1 [Yes] NA        257   5.5    2.5  NA       NA      NA
+2 Albania        0 [Not… 1 [Yes]  0.801     18   3      2.4  76.2     98.7  5316
+3 Algeria        0 [Not… 1 [Yes]  0.733     39   5.5    2.8  71.7     69.9  7062
+4 Andorra        0 [Not… 0 [No]  NA          3   1     NA    NA       NA      NA
+5 Angola         0 [Not… 0 [No]   0.446    260   5.5    2    41.7     67.4  2335
+6 Antigua and B… 0 [Not… 0 [No]   0.815     12   2     NA    73.9     85.8 12500
+# … with 3 more variables: co2 &lt;dbl&gt;, physicians &lt;dbl&gt;, AIDS &lt;dbl&gt;</code></pre>
+</div>
+</div>
+<p>For SAS</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb7"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>data_sas <span class="ot">&lt;-</span> <span class="fu">read_sas</span>(<span class="st">"nations.sas7bdat"</span>)</span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a><span class="fu">head</span>(data_sas)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 6 × 13
+  country    oecd  Muslim mrate5 free  free_new corrup literacy gdppc physicians
+  &lt;chr&gt;      &lt;chr&gt; &lt;chr&gt;   &lt;dbl&gt; &lt;chr&gt; &lt;chr&gt;     &lt;dbl&gt;    &lt;dbl&gt; &lt;dbl&gt;      &lt;dbl&gt;
+1 Afghanist… not … muslim    257 5.5   not free    2.5     NA      NA      NA   
+2 Albania    not … muslim     18 part… partly …    2.4     98.7  5316      NA   
+3 Algeria    not … muslim     39 5.5   not free    2.8     69.9  7062      NA   
+4 Andorra    not … non-m…      3 free  free       NA       NA      NA      NA   
+5 Angola     not … non-m…    260 5.5   not free    2       67.4  2335       0.08
+6 Antigua a… not … non-m…     12 free  free       NA       85.8 12500      NA   
+# … with 3 more variables: hunger &lt;dbl&gt;, sanitation &lt;dbl&gt;,
+#   f_adlitrate_2000 &lt;dbl&gt;</code></pre>
+</div>
+</div>
+<p>For Stata</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb9"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>data_stata <span class="ot">&lt;-</span> <span class="fu">read_stata</span>(<span class="st">"cs.dta"</span>)</span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a><span class="fu">head</span>(data_stata)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 6 × 13
+  country             oecd  Muslim mrate5    free free_new corrup literacy gdppc
+  &lt;chr&gt;            &lt;dbl+l&gt; &lt;dbl+l&gt;  &lt;dbl&gt; &lt;dbl+l&gt; &lt;dbl+lb&gt;  &lt;dbl&gt;    &lt;dbl&gt; &lt;dbl&gt;
+1 Afghanistan      0 [not… 1 [mus…    257 5.5     3 [not …    2.5     NA      NA
+2 Albania          0 [not… 1 [mus…     18 3 [par… 2 [part…    2.4     98.7  5316
+3 Algeria          0 [not… 1 [mus…     39 5.5     3 [not …    2.8     69.9  7062
+4 Andorra          0 [not… 0 [non…      3 1 [fre… 1 [free]   NA       NA      NA
+5 Angola           0 [not… 0 [non…    260 5.5     3 [not …    2       67.4  2335
+6 Antigua and Bar… 0 [not… 0 [non…     12 2 [fre… 1 [free]   NA       85.8 12500
+# … with 4 more variables: physicians &lt;dbl&gt;, hunger &lt;dbl&gt;, sanitation &lt;dbl&gt;,
+#   f_adlitrate_2000 &lt;dbl&gt;</code></pre>
+</div>
+</div>
+<p>For an excel sheet</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb11"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>data_excel <span class="ot">&lt;-</span> readxl<span class="sc">::</span><span class="fu">read_excel</span>(<span class="st">"cs.xlsx"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+<section id="data-inspection" class="level2">
+<h2 class="anchored" data-anchor-id="data-inspection">Data inspection</h2>
+<p>We’re now going to examine the names of the columns in our data set and look at the first few entries in each column</p>
+<p>print the first six cases in the dataset</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb12"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="fu">head</span>(cs)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>              country oecd Muslim mrate5 free free_new corrup literacy gdppc
+1         Afghanistan    0      1    257  5.5        3    2.5       NA    NA
+2             Albania    0      1     18  3.0        2    2.4     98.7  5316
+3             Algeria    0      1     39  5.5        3    2.8     69.9  7062
+4             Andorra    0      0      3  1.0        1     NA       NA    NA
+5              Angola    0      0    260  5.5        3    2.0     67.4  2335
+6 Antigua and Barbuda    0      0     12  2.0        1     NA     85.8 12500
+  physicians hunger sanitation f_adlitrate_2000
+1         NA     39         34               21
+2         NA     14         91               77
+3         NA     10         92               57
+4         NA     NA        100               NA
+5       0.08     31         31               NA
+6         NA     NA         95               83</code></pre>
+</div>
+</div>
+<p>print the last six cases in the dataset</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb14"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="fu">tail</span>(cs)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>           country oecd Muslim mrate5 free free_new corrup literacy gdppc
+212      Venezuela    0      0     21  3.5        2    2.3     93.0  6632
+213       Viet Nam    0      0     19  6.5        3    2.6     90.3  3071
+214 Western Sahara    0      0     NA   NA       NA     NA       NA    NA
+215          Yemen    0      1    102  5.0        2    2.7     54.1   930
+216         Zambia    0      0    182  4.0        2    2.6     68.0  1023
+217       Zimbabwe    0      0    132  6.5        3    2.6     89.4  2038
+    physicians hunger sanitation f_adlitrate_2000
+212         NA      4         68               92
+213         NA     28         61               91
+214         NA     NA         NA               NA
+215       0.33     46         43               25
+216       0.12     23         55               72
+217       0.16     13         53               85</code></pre>
+</div>
+</div>
+<p>print the names for each column/variable</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb16"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="fu">colnames</span>(cs)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code> [1] "country"          "oecd"             "Muslim"           "mrate5"          
+ [5] "free"             "free_new"         "corrup"           "literacy"        
+ [9] "gdppc"            "physicians"       "hunger"           "sanitation"      
+[13] "f_adlitrate_2000"</code></pre>
+</div>
+</div>
+<p>Return the structure of the dataset</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb18"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="fu">str</span>(cs)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>'data.frame':   217 obs. of  13 variables:
+ $ country         : chr  "Afghanistan" "Albania" "Algeria" "Andorra" ...
+ $ oecd            : int  0 0 0 0 0 0 0 0 0 1 ...
+ $ Muslim          : int  1 1 1 0 0 0 0 0 0 0 ...
+ $ mrate5          : int  257 18 39 3 260 12 18 29 NA 6 ...
+ $ free            : num  5.5 3 5.5 1 5.5 2 2 4.5 NA 1 ...
+ $ free_new        : int  3 2 3 1 3 1 1 2 NA 1 ...
+ $ corrup          : num  2.5 2.4 2.8 NA 2 NA 2.8 2.9 NA 8.8 ...
+ $ literacy        : num  NA 98.7 69.9 NA 67.4 85.8 97.2 99.4 NA NA ...
+ $ gdppc           : int  NA 5316 7062 NA 2335 12500 14280 4945 NA 31794 ...
+ $ physicians      : num  NA NA NA NA 0.08 NA NA NA NA NA ...
+ $ hunger          : int  39 14 10 NA 31 NA 5 3 NA NA ...
+ $ sanitation      : int  34 91 92 100 31 95 91 83 NA 100 ...
+ $ f_adlitrate_2000: int  21 77 57 NA NA 83 97 98 NA NA ...</code></pre>
+</div>
+</div>
+<p>We can also view the dataset like an excel sheet</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb20"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="fu">View</span>(cs)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+<section id="some-basic-data-cleaning" class="level1">
+<h1>Some basic data cleaning</h1>
+<p>For this we will turn to another dataset. It is a synthetic dataset that is based on a slice of variables from my dissertation dataset. To learn more about how to create synthetic datasets see: https://www.synthpop.org.uk/get-started.html</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb21"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(psych)</span>
+<span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a>sample_diss <span class="ot">&lt;-</span><span class="fu">read.csv</span>(<span class="st">"ers_diss_synthetic.csv"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>We are going to rename the variable names</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb22"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a><span class="fu">colnames</span>(sample_diss) <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="st">"panas_1"</span>,<span class="st">"panas_2"</span>,<span class="st">"panas_3"</span>,<span class="st">"panas_4"</span>,<span class="st">"panas_5"</span>,</span>
+<span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a>                      <span class="st">"panas_6"</span>,<span class="st">"panas_7"</span>,<span class="st">"panas_8"</span>,<span class="st">"panas_9"</span>,<span class="st">"panas_10"</span>,</span>
+<span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a>                      <span class="st">"panas_11"</span>,<span class="st">"panas_12"</span>,<span class="st">"panas_13"</span>,<span class="st">"panas_14"</span>,<span class="st">"panas_15"</span>,</span>
+<span id="cb22-4"><a href="#cb22-4" aria-hidden="true" tabindex="-1"></a>                      <span class="st">"panas_16"</span>,<span class="st">"panas_17"</span>,<span class="st">"panas_18"</span>,<span class="st">"panas_19"</span>,<span class="st">"panas_20"</span>,</span>
+<span id="cb22-5"><a href="#cb22-5" aria-hidden="true" tabindex="-1"></a>                      <span class="st">"ces_1"</span>,<span class="st">"ces_2"</span>,<span class="st">"ces_3"</span>,<span class="st">"ces_4"</span>,<span class="st">"ces_5"</span>,<span class="st">"ces_6"</span>,<span class="st">"ces_7"</span>,</span>
+<span id="cb22-6"><a href="#cb22-6" aria-hidden="true" tabindex="-1"></a>                      <span class="st">"sex"</span>,<span class="st">"age"</span>,<span class="st">"ptss_total_score"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>We can do a quick inspection of the data 1. Data structure</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb23"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a><span class="fu">str</span>(sample_diss)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>'data.frame':   437 obs. of  30 variables:
+ $ panas_1         : int  5 5 4 4 5 2 5 4 4 4 ...
+ $ panas_2         : int  2 5 2 2 3 3 3 2 3 2 ...
+ $ panas_3         : int  3 3 4 1 5 2 5 4 3 5 ...
+ $ panas_4         : int  2 5 2 2 3 3 2 1 3 3 ...
+ $ panas_5         : int  4 2 4 3 3 2 5 3 3 4 ...
+ $ panas_6         : int  2 3 2 1 1 1 2 1 1 1 ...
+ $ panas_7         : int  2 1 2 1 2 3 2 1 2 1 ...
+ $ panas_8         : int  3 2 2 1 2 1 3 1 1 1 ...
+ $ panas_9         : int  3 3 4 1 4 1 5 4 4 5 ...
+ $ panas_10        : int  3 3 2 3 2 1 5 3 3 3 ...
+ $ panas_11        : int  4 2 2 3 4 1 3 1 3 1 ...
+ $ panas_12        : int  4 4 5 5 3 2 5 4 3 5 ...
+ $ panas_13        : int  2 4 2 1 1 1 2 1 1 1 ...
+ $ panas_14        : int  1 3 4 3 3 1 5 3 4 5 ...
+ $ panas_15        : int  2 3 3 2 5 5 2 1 2 1 ...
+ $ panas_16        : int  4 3 5 4 3 2 4 4 3 5 ...
+ $ panas_17        : int  4 4 5 4 3 2 3 4 3 5 ...
+ $ panas_18        : int  2 1 2 2 5 4 2 1 3 1 ...
+ $ panas_19        : int  3 4 4 4 3 2 5 4 3 5 ...
+ $ panas_20        : int  2 2 2 1 2 3 1 1 1 1 ...
+ $ ces_1           : int  3 5 4 4 5 5 5 1 3 1 ...
+ $ ces_2           : int  4 5 3 4 4 5 5 2 3 1 ...
+ $ ces_3           : int  3 5 2 3 4 5 5 1 3 1 ...
+ $ ces_4           : int  4 4 4 4 5 5 5 4 4 1 ...
+ $ ces_5           : int  5 5 4 4 3 5 5 4 4 1 ...
+ $ ces_6           : int  4 5 2 3 5 5 5 2 4 1 ...
+ $ ces_7           : int  4 3 1 5 4 5 5 3 4 1 ...
+ $ sex             : int  2 1 2 2 2 1 1 2 2 1 ...
+ $ age             : int  60 32 26 26 52 31 30 26 23 32 ...
+ $ ptss_total_score: int  34 49 5 10 52 57 34 8 39 5 ...</code></pre>
+</div>
+</div>
+<p>View the data</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb25"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a><span class="fu">View</span>(sample_diss)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>Describe the data</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb26"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a><span class="fu">describe</span>(sample_diss)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>                 vars   n  mean    sd median trimmed   mad min max range  skew
+panas_1             1 437  3.78  1.09      4    3.88  1.48   1   5     4 -0.61
+panas_2             2 437  2.40  1.28      2    2.26  1.48   1   5     4  0.62
+panas_3             3 435  2.95  1.24      3    2.94  1.48   1   5     4  0.13
+panas_4             4 437  2.39  1.25      2    2.28  1.48   1   5     4  0.50
+panas_5             5 436  3.03  1.24      3    3.03  1.48   1   5     4 -0.05
+panas_6             6 435  1.67  1.04      1    1.44  0.00   1   5     4  1.68
+panas_7             7 433  1.90  1.23      1    1.66  0.00   1   5     4  1.34
+panas_8             8 437  1.59  0.96      1    1.38  0.00   1   5     4  1.75
+panas_9             9 437  3.19  1.25      3    3.23  1.48   1   5     4 -0.27
+panas_10           10 435  2.93  1.22      3    2.92  1.48   1   5     4 -0.12
+panas_11           11 433  2.48  1.25      2    2.38  1.48   1   5     4  0.47
+panas_12           12 436  3.55  1.06      4    3.61  1.48   1   5     4 -0.46
+panas_13           13 437  1.64  1.03      1    1.42  0.00   1   5     4  1.65
+panas_14           14 437  2.93  1.37      3    2.92  1.48   1   5     4  0.03
+panas_15           15 434  2.35  1.34      2    2.19  1.48   1   5     4  0.65
+panas_16           16 435  3.49  1.23      4    3.59  1.48   1   5     4 -0.53
+panas_17           17 436  3.66  1.07      4    3.74  1.48   1   5     4 -0.65
+panas_18           18 437  2.00  1.23      2    1.81  1.48   1   5     4  1.03
+panas_19           19 436  3.15  1.23      3    3.18  1.48   1   5     4 -0.18
+panas_20           20 437  1.85  1.15      1    1.63  0.00   1   5     4  1.35
+ces_1              21 437  3.35  1.43      4    3.43  1.48   1   5     4 -0.36
+ces_2              22 437  3.12  1.40      3    3.15  1.48   1   5     4 -0.17
+ces_3              23 437  3.06  1.46      3    3.07  1.48   1   5     4 -0.09
+ces_4              24 436  3.44  1.36      4    3.55  1.48   1   5     4 -0.57
+ces_5              25 437  3.78  1.32      4    3.97  1.48   1   5     4 -0.86
+ces_6              26 437  2.99  1.45      3    2.99  1.48   1   5     4 -0.01
+ces_7              27 436  3.24  1.47      3    3.30  1.48   1   5     4 -0.23
+sex                28 437  1.66  0.47      2    1.70  0.00   1   2     1 -0.67
+age                29 437 38.71 12.37     36   37.88 13.34  20  78    58  0.57
+ptss_total_score   30 414 21.30 18.06     16   19.35 16.31   0  75    75  0.81
+                 kurtosis   se
+panas_1             -0.54 0.05
+panas_2             -0.71 0.06
+panas_3             -0.97 0.06
+panas_4             -0.87 0.06
+panas_5             -0.96 0.06
+panas_6              2.17 0.05
+panas_7              0.75 0.06
+panas_8              2.49 0.05
+panas_9             -0.99 0.06
+panas_10            -0.91 0.06
+panas_11            -0.84 0.06
+panas_12            -0.34 0.05
+panas_13             1.93 0.05
+panas_14            -1.22 0.07
+panas_15            -0.84 0.06
+panas_16            -0.66 0.06
+panas_17            -0.28 0.05
+panas_18            -0.02 0.06
+panas_19            -0.91 0.06
+panas_20             0.91 0.05
+ces_1               -1.22 0.07
+ces_2               -1.25 0.07
+ces_3               -1.36 0.07
+ces_4               -0.90 0.07
+ces_5               -0.48 0.06
+ces_6               -1.37 0.07
+ces_7               -1.36 0.07
+sex                 -1.56 0.02
+age                 -0.52 0.59
+ptss_total_score    -0.36 0.89</code></pre>
+</div>
+</div>
+<p>Creating factors for sex</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb28"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a>sample_diss<span class="sc">$</span>sex <span class="ot">&lt;-</span> <span class="fu">factor</span>(sample_diss<span class="sc">$</span>sex, <span class="at">levels =</span> <span class="fu">c</span>(<span class="dv">1</span>,<span class="dv">2</span>), <span class="at">labels =</span> <span class="fu">c</span>(<span class="st">"Male"</span>,<span class="st">"Female"</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>We can then check frequencies</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb29"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true" tabindex="-1"></a>janitor<span class="sc">::</span><span class="fu">tabyl</span>(sample_diss<span class="sc">$</span>sex)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code> sample_diss$sex   n   percent
+            Male 149 0.3409611
+          Female 288 0.6590389</code></pre>
+</div>
+</div>
+<p>Let’s say we were interested in creating quartile splits of posttraumatic stress scores</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb31"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb31-1"><a href="#cb31-1" aria-hidden="true" tabindex="-1"></a>sample_diss<span class="sc">$</span>ptss_quartile[sample_diss<span class="sc">$</span>ptss_total_score <span class="sc">&lt;</span> <span class="fl">6.1</span>] <span class="ot">&lt;-</span> <span class="dv">1</span></span>
+<span id="cb31-2"><a href="#cb31-2" aria-hidden="true" tabindex="-1"></a>sample_diss<span class="sc">$</span>ptss_quartile[sample_diss<span class="sc">$</span>ptss_total_score <span class="sc">&gt;=</span> <span class="fl">6.1</span> <span class="sc">&amp;</span> </span>
+<span id="cb31-3"><a href="#cb31-3" aria-hidden="true" tabindex="-1"></a>                       sample_diss<span class="sc">$</span>ptss_total_score <span class="sc">&lt;</span><span class="fl">21.2</span>] <span class="ot">&lt;-</span> <span class="dv">2</span></span>
+<span id="cb31-4"><a href="#cb31-4" aria-hidden="true" tabindex="-1"></a>sample_diss<span class="sc">$</span>ptss_quartile[sample_diss<span class="sc">$</span>ptss_total_score <span class="sc">&gt;=</span> <span class="fl">21.2</span> <span class="sc">&amp;</span> </span>
+<span id="cb31-5"><a href="#cb31-5" aria-hidden="true" tabindex="-1"></a>                       sample_diss<span class="sc">$</span>ptss_total_score <span class="sc">&lt;</span><span class="dv">34</span>] <span class="ot">&lt;-</span> <span class="dv">3</span></span>
+<span id="cb31-6"><a href="#cb31-6" aria-hidden="true" tabindex="-1"></a>sample_diss<span class="sc">$</span>ptss_quartile[sample_diss<span class="sc">$</span>ptss_total_score <span class="sc">&gt;=</span> <span class="dv">34</span>] <span class="ot">&lt;-</span> <span class="dv">4</span></span>
+<span id="cb31-7"><a href="#cb31-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb31-8"><a href="#cb31-8" aria-hidden="true" tabindex="-1"></a>plyr<span class="sc">::</span><span class="fu">count</span>(sample_diss<span class="sc">$</span>ptss_quartile)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>   x freq
+1  1  109
+2  2  138
+3  3   60
+4  4  107
+5 NA   23</code></pre>
+</div>
+</div>
+<p>We could then make it an ordered factor</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb33"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb33-1"><a href="#cb33-1" aria-hidden="true" tabindex="-1"></a>sample_diss<span class="sc">$</span>ptss_quartile <span class="ot">&lt;-</span> <span class="fu">factor</span>(sample_diss<span class="sc">$</span>ptss_quartile,</span>
+<span id="cb33-2"><a href="#cb33-2" aria-hidden="true" tabindex="-1"></a>                               <span class="at">levels =</span> <span class="fu">c</span>(<span class="dv">1</span>,<span class="dv">2</span>,<span class="dv">3</span>,<span class="dv">4</span>),</span>
+<span id="cb33-3"><a href="#cb33-3" aria-hidden="true" tabindex="-1"></a>                               <span class="at">labels =</span> <span class="fu">c</span>(<span class="st">"Q1"</span>,<span class="st">"Q2"</span>,<span class="st">"Q3"</span>,<span class="st">"Q4"</span>),</span>
+<span id="cb33-4"><a href="#cb33-4" aria-hidden="true" tabindex="-1"></a>                               <span class="at">ordered =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb33-5"><a href="#cb33-5" aria-hidden="true" tabindex="-1"></a>plyr<span class="sc">::</span><span class="fu">count</span>(sample_diss<span class="sc">$</span>ptss_quartile)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>     x freq
+1   Q1  109
+2   Q2  138
+3   Q3   60
+4   Q4  107
+5 &lt;NA&gt;   23</code></pre>
+</div>
+</div>
+<p>Collapsing factors</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb35"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb35-1"><a href="#cb35-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(forcats)</span>
+<span id="cb35-2"><a href="#cb35-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb35-3"><a href="#cb35-3" aria-hidden="true" tabindex="-1"></a>sample_diss<span class="sc">$</span>ptss_qsplit <span class="ot">&lt;-</span> <span class="fu">fct_collapse</span>(sample_diss<span class="sc">$</span>ptss_quartile,</span>
+<span id="cb35-4"><a href="#cb35-4" aria-hidden="true" tabindex="-1"></a>                                   <span class="at">Low =</span> <span class="fu">c</span>(<span class="st">"Q1"</span>,<span class="st">"Q2"</span>,<span class="st">"Q3"</span>),</span>
+<span id="cb35-5"><a href="#cb35-5" aria-hidden="true" tabindex="-1"></a>                                   <span class="at">High =</span> <span class="fu">c</span>(<span class="st">"Q4"</span>))</span>
+<span id="cb35-6"><a href="#cb35-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb35-7"><a href="#cb35-7" aria-hidden="true" tabindex="-1"></a>plyr<span class="sc">::</span><span class="fu">count</span>(sample_diss<span class="sc">$</span>ptss_qsplit)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>     x freq
+1  Low  307
+2 High  107
+3 &lt;NA&gt;   23</code></pre>
+</div>
+</div>
+<p>A better option would be to use a clinical cut-off score (say 32). For this we can try an ifelse function</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb37"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb37-1"><a href="#cb37-1" aria-hidden="true" tabindex="-1"></a>sample_diss<span class="sc">$</span>ptss_cutoff <span class="ot">&lt;-</span><span class="fu">ifelse</span>(sample_diss<span class="sc">$</span>ptss_total_score <span class="sc">&gt;=</span> <span class="dv">32</span>, <span class="dv">1</span>,<span class="dv">0</span>)</span>
+<span id="cb37-2"><a href="#cb37-2" aria-hidden="true" tabindex="-1"></a>sample_diss<span class="sc">$</span>ptss_cutoff <span class="ot">&lt;-</span> <span class="fu">factor</span>(sample_diss<span class="sc">$</span>ptss_cutoff,</span>
+<span id="cb37-3"><a href="#cb37-3" aria-hidden="true" tabindex="-1"></a>                             <span class="at">levels =</span> <span class="fu">c</span>(<span class="dv">0</span>,<span class="dv">1</span>),</span>
+<span id="cb37-4"><a href="#cb37-4" aria-hidden="true" tabindex="-1"></a>                             <span class="at">labels =</span> <span class="fu">c</span>(<span class="st">"No"</span>, <span class="st">"Yes"</span>))</span>
+<span id="cb37-5"><a href="#cb37-5" aria-hidden="true" tabindex="-1"></a>janitor<span class="sc">::</span><span class="fu">tabyl</span>(sample_diss<span class="sc">$</span>ptss_cutoff)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code> sample_diss$ptss_cutoff   n    percent valid_percent
+                      No 294 0.67276888     0.7101449
+                     Yes 120 0.27459954     0.2898551
+                    &lt;NA&gt;  23 0.05263158            NA</code></pre>
+</div>
+</div>
+<p>Reverse coding Sometimes in Likert type scales an item is reverse coded. The quickest way to do this is to take the maximum value of the scale, add 1, then take that number and substract the current score. We will do this with a CES item, that the highest value of the item is a 5.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb39"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb39-1"><a href="#cb39-1" aria-hidden="true" tabindex="-1"></a>sample_diss<span class="sc">$</span>ces_1_reverse <span class="ot">&lt;-</span> <span class="dv">6</span> <span class="sc">-</span> sample_diss<span class="sc">$</span>ces_1</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>we can then check visually</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb40"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb40-1"><a href="#cb40-1" aria-hidden="true" tabindex="-1"></a><span class="fu">View</span>(sample_diss)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>Summative scores and average scores we will create an average score for our CES items, and total scores for both positive affectivity and negative affectivity</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb41"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb41-1"><a href="#cb41-1" aria-hidden="true" tabindex="-1"></a>sample_diss<span class="sc">$</span>ces <span class="ot">&lt;-</span> (sample_diss<span class="sc">$</span>ces_1 <span class="sc">+</span> sample_diss<span class="sc">$</span>ces_2 <span class="sc">+</span> sample_diss<span class="sc">$</span>ces_3 <span class="sc">+</span></span>
+<span id="cb41-2"><a href="#cb41-2" aria-hidden="true" tabindex="-1"></a>                 sample_diss<span class="sc">$</span>ces_4 <span class="sc">+</span> sample_diss<span class="sc">$</span>ces_5 <span class="sc">+</span> sample_diss<span class="sc">$</span>ces_6 <span class="sc">+</span></span>
+<span id="cb41-3"><a href="#cb41-3" aria-hidden="true" tabindex="-1"></a>                 sample_diss<span class="sc">$</span>ces_7)<span class="sc">/</span><span class="dv">7</span></span>
+<span id="cb41-4"><a href="#cb41-4" aria-hidden="true" tabindex="-1"></a>sample_diss<span class="sc">$</span>pos_aff <span class="ot">&lt;-</span> sample_diss<span class="sc">$</span>panas_1 <span class="sc">+</span> sample_diss<span class="sc">$</span>panas_3 <span class="sc">+</span> sample_diss<span class="sc">$</span>panas_5 <span class="sc">+</span> </span>
+<span id="cb41-5"><a href="#cb41-5" aria-hidden="true" tabindex="-1"></a>                  sample_diss<span class="sc">$</span>panas_9 <span class="sc">+</span> sample_diss<span class="sc">$</span>panas_10 <span class="sc">+</span> sample_diss<span class="sc">$</span>panas_12 <span class="sc">+</span> </span>
+<span id="cb41-6"><a href="#cb41-6" aria-hidden="true" tabindex="-1"></a>                  sample_diss<span class="sc">$</span>panas_14 <span class="sc">+</span> sample_diss<span class="sc">$</span>panas_16 <span class="sc">+</span> sample_diss<span class="sc">$</span>panas_17 <span class="sc">+</span></span>
+<span id="cb41-7"><a href="#cb41-7" aria-hidden="true" tabindex="-1"></a>                  sample_diss<span class="sc">$</span>panas_19</span>
+<span id="cb41-8"><a href="#cb41-8" aria-hidden="true" tabindex="-1"></a>sample_diss<span class="sc">$</span>neg_aff <span class="ot">&lt;-</span> sample_diss<span class="sc">$</span>panas_2 <span class="sc">+</span> sample_diss<span class="sc">$</span>panas_4 <span class="sc">+</span> sample_diss<span class="sc">$</span>panas_6 <span class="sc">+</span> </span>
+<span id="cb41-9"><a href="#cb41-9" aria-hidden="true" tabindex="-1"></a>                  sample_diss<span class="sc">$</span>panas_7 <span class="sc">+</span> sample_diss<span class="sc">$</span>panas_8 <span class="sc">+</span> sample_diss<span class="sc">$</span>panas_11 <span class="sc">+</span> </span>
+<span id="cb41-10"><a href="#cb41-10" aria-hidden="true" tabindex="-1"></a>                  sample_diss<span class="sc">$</span>panas_13 <span class="sc">+</span> sample_diss<span class="sc">$</span>panas_15 <span class="sc">+</span> sample_diss<span class="sc">$</span>panas_18 <span class="sc">+</span></span>
+<span id="cb41-11"><a href="#cb41-11" aria-hidden="true" tabindex="-1"></a>                  sample_diss<span class="sc">$</span>panas_20</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>Let’s see what the descriptives for the total and average scores look like. Here we will reference the column numbers to pull just those three variables</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb42"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb42-1"><a href="#cb42-1" aria-hidden="true" tabindex="-1"></a><span class="fu">describe</span>(sample_diss[,<span class="dv">35</span><span class="sc">:</span><span class="dv">37</span>])</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>        vars   n  mean   sd median trimmed  mad min max range  skew kurtosis
+ces        1 435  3.28 1.16   3.43    3.33 1.27   1   5     4 -0.29    -0.93
+pos_aff    2 427 32.71 9.14  34.00   32.88 8.90  11  50    39 -0.19    -0.69
+neg_aff    3 424 20.42 8.79  19.00   19.48 8.90  10  44    34  0.73    -0.38
+          se
+ces     0.06
+pos_aff 0.44
+neg_aff 0.43</code></pre>
+</div>
+</div>
+<p>We can also describe CES by a factor</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb44"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb44-1"><a href="#cb44-1" aria-hidden="true" tabindex="-1"></a>descript_by_sex <span class="ot">&lt;-</span> <span class="fu">describeBy</span>(sample_diss[,<span class="dv">35</span><span class="sc">:</span><span class="dv">37</span>], <span class="at">group =</span> sample_diss<span class="sc">$</span>sex)</span>
+<span id="cb44-2"><a href="#cb44-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb44-3"><a href="#cb44-3" aria-hidden="true" tabindex="-1"></a>table1 <span class="ot">&lt;-</span> <span class="fu">do.call</span>(<span class="st">"rbind"</span>, descript_by_sex)</span>
+<span id="cb44-4"><a href="#cb44-4" aria-hidden="true" tabindex="-1"></a>table1 <span class="ot">&lt;-</span> <span class="fu">round</span>(table1,<span class="dv">2</span>)</span>
+<span id="cb44-5"><a href="#cb44-5" aria-hidden="true" tabindex="-1"></a>table1</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>               vars   n  mean   sd median trimmed   mad min max range  skew
+Male.ces          1 148  3.17 1.20   3.14    3.21  1.48   1   5     4 -0.14
+Male.pos_aff      2 146 33.96 9.33  35.00   34.37 10.38  11  50    39 -0.33
+Male.neg_aff      3 145 20.66 9.50  18.00   19.75 10.38  10  44    34  0.64
+Female.ces        1 287  3.34 1.13   3.57    3.39  1.27   1   5     4 -0.37
+Female.pos_aff    2 281 32.06 8.99  33.00   32.15  8.90  11  50    39 -0.13
+Female.neg_aff    3 279 20.29 8.41  19.00   19.40  8.90  10  44    34  0.77
+               kurtosis   se
+Male.ces          -1.14 0.10
+Male.pos_aff      -0.78 0.77
+Male.neg_aff      -0.82 0.79
+Female.ces        -0.79 0.07
+Female.pos_aff    -0.61 0.54
+Female.neg_aff    -0.11 0.50</code></pre>
+</div>
+</div>
+<p>We can write this to a csv file</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb46"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb46-1"><a href="#cb46-1" aria-hidden="true" tabindex="-1"></a><span class="fu">write.csv</span>(table1, <span class="at">file =</span> <span class="st">"descriptives by sex.csv"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>We can also make a sortable and searchable table with the DT package</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb47"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb47-1"><a href="#cb47-1" aria-hidden="true" tabindex="-1"></a>DT<span class="sc">::</span><span class="fu">datatable</span>(table1)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+
+<div id="htmlwidget-6aea4e1e0ec730afd5f2" style="width:100%;height:auto;" class="datatables html-widget"></div>
+<script type="application/json" data-for="htmlwidget-6aea4e1e0ec730afd5f2">{"x":{"filter":"none","vertical":false,"data":[["Male.ces","Male.pos_aff","Male.neg_aff","Female.ces","Female.pos_aff","Female.neg_aff"],[1,2,3,1,2,3],[148,146,145,287,281,279],[3.17,33.96,20.66,3.34,32.06,20.29],[1.2,9.33,9.5,1.13,8.99,8.41],[3.14,35,18,3.57,33,19],[3.21,34.37,19.75,3.39,32.15,19.4],[1.48,10.38,10.38,1.27,8.9,8.9],[1,11,10,1,11,10],[5,50,44,5,50,44],[4,39,34,4,39,34],[-0.14,-0.33,0.64,-0.37,-0.13,0.77],[-1.14,-0.78,-0.82,-0.79,-0.61,-0.11],[0.1,0.77,0.79,0.07,0.54,0.5]],"container":"<table class=\"display\">\n  <thead>\n    <tr>\n      <th> <\/th>\n      <th>vars<\/th>\n      <th>n<\/th>\n      <th>mean<\/th>\n      <th>sd<\/th>\n      <th>median<\/th>\n      <th>trimmed<\/th>\n      <th>mad<\/th>\n      <th>min<\/th>\n      <th>max<\/th>\n      <th>range<\/th>\n      <th>skew<\/th>\n      <th>kurtosis<\/th>\n      <th>se<\/th>\n    <\/tr>\n  <\/thead>\n<\/table>","options":{"columnDefs":[{"className":"dt-right","targets":[1,2,3,4,5,6,7,8,9,10,11,12,13]},{"orderable":false,"targets":0}],"order":[],"autoWidth":false,"orderClasses":false}},"evals":[],"jsHooks":[]}</script>
+</div>
+</div>
+<p>Internal reliability The psych package has a great function to calculate internal reliability. To use this we list the columns the ces variables are in and include na.rm = TRUE to omit missing observations.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb48"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb48-1"><a href="#cb48-1" aria-hidden="true" tabindex="-1"></a><span class="fu">alpha</span>(sample_diss[<span class="dv">21</span><span class="sc">:</span><span class="dv">27</span>], <span class="at">na.rm =</span> <span class="cn">TRUE</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+Reliability analysis   
+Call: alpha(x = sample_diss[21:27], na.rm = TRUE)
+
+  raw_alpha std.alpha G6(smc) average_r S/N    ase mean  sd median_r
+      0.92      0.92    0.91      0.61  11 0.0061  3.3 1.2     0.61
+
+    95% confidence boundaries 
+         lower alpha upper
+Feldt     0.90  0.92  0.93
+Duhachek  0.91  0.92  0.93
+
+ Reliability if an item is dropped:
+      raw_alpha std.alpha G6(smc) average_r  S/N alpha se  var.r med.r
+ces_1      0.90      0.90    0.89      0.61  9.3   0.0072 0.0020  0.61
+ces_2      0.90      0.91    0.89      0.62  9.6   0.0071 0.0022  0.61
+ces_3      0.90      0.90    0.89      0.60  9.1   0.0074 0.0029  0.60
+ces_4      0.90      0.90    0.89      0.60  9.2   0.0073 0.0038  0.60
+ces_5      0.91      0.91    0.90      0.62  9.8   0.0069 0.0029  0.61
+ces_6      0.91      0.91    0.90      0.63 10.0   0.0068 0.0034  0.63
+ces_7      0.91      0.91    0.90      0.62  9.8   0.0069 0.0033  0.63
+
+ Item statistics 
+        n raw.r std.r r.cor r.drop mean  sd
+ces_1 437  0.83  0.83  0.81   0.77  3.3 1.4
+ces_2 437  0.81  0.81  0.78   0.74  3.1 1.4
+ces_3 437  0.85  0.85  0.82   0.79  3.1 1.5
+ces_4 436  0.84  0.84  0.81   0.78  3.4 1.4
+ces_5 437  0.80  0.80  0.76   0.72  3.8 1.3
+ces_6 437  0.79  0.79  0.74   0.70  3.0 1.5
+ces_7 436  0.80  0.80  0.75   0.72  3.2 1.5
+
+Non missing response frequency for each item
+         1    2    3    4    5 miss
+ces_1 0.16 0.15 0.17 0.24 0.28    0
+ces_2 0.19 0.16 0.20 0.24 0.20    0
+ces_3 0.22 0.16 0.20 0.20 0.22    0
+ces_4 0.14 0.11 0.16 0.33 0.25    0
+ces_5 0.10 0.10 0.13 0.28 0.40    0
+ces_6 0.22 0.19 0.18 0.20 0.21    0
+ces_7 0.18 0.17 0.17 0.20 0.28    0</code></pre>
+</div>
+</div>
+<p><em>Note</em> We are not going to talk about missing data as that in itself is a big topic. If you are interested in ways to assess/handle missingness there is a script about that topic in the advanced topics module.</p>
+<p>Sometimes we may want to save an object from R to use at a later point. In this case, we can save our dataframe as an R object</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb50"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb50-1"><a href="#cb50-1" aria-hidden="true" tabindex="-1"></a><span class="fu">saveRDS</span>(sample_diss, <span class="at">file =</span> <span class="st">"cleaned_syn_diss.RDS"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>We can then clear the environment</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb51"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb51-1"><a href="#cb51-1" aria-hidden="true" tabindex="-1"></a><span class="fu">rm</span>(<span class="at">list=</span><span class="fu">ls</span>())</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>And reload the object in if this was a new script</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb52"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb52-1"><a href="#cb52-1" aria-hidden="true" tabindex="-1"></a>syn_diss_cleaned <span class="ot">&lt;-</span> <span class="fu">readRDS</span>(<span class="st">"cleaned_syn_diss.RDS"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+<section id="reporting-r-package-information-versions" class="level1">
+<h1>Reporting R Package Information (versions)</h1>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb53"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb53-1"><a href="#cb53-1" aria-hidden="true" tabindex="-1"></a><span class="fu">installed.packages</span>()[<span class="fu">names</span>(<span class="fu">sessionInfo</span>()<span class="sc">$</span>otherPkgs), <span class="st">"Version"</span>]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>forcats   psych  readxl   haven 
+"0.5.1" "2.2.5" "1.4.0" "2.5.0" </code></pre>
+</div>
+</div>
+</section>
+
+</main>
+<!-- /main column -->
+<script id="quarto-html-after-body" type="application/javascript">
+window.document.addEventListener("DOMContentLoaded", function (event) {
+  const icon = "";
+  const anchorJS = new window.AnchorJS();
+  anchorJS.options = {
+    placement: 'right',
+    icon: icon
+  };
+  anchorJS.add('.anchored');
+  const clipboard = new window.ClipboardJS('.code-copy-button', {
+    target: function(trigger) {
+      return trigger.previousElementSibling;
+    }
+  });
+  clipboard.on('success', function(e) {
+    // button target
+    const button = e.trigger;
+    // don't keep focus
+    button.blur();
+    // flash "checked"
+    button.classList.add('code-copy-button-checked');
+    var currentTitle = button.getAttribute("title");
+    button.setAttribute("title", "Copied!");
+    setTimeout(function() {
+      button.setAttribute("title", currentTitle);
+      button.classList.remove('code-copy-button-checked');
+    }, 1000);
+    // clear code selection
+    e.clearSelection();
+  });
+  function tippyHover(el, contentFn) {
+    const config = {
+      allowHTML: true,
+      content: contentFn,
+      maxWidth: 500,
+      delay: 100,
+      arrow: false,
+      appendTo: function(el) {
+          return el.parentElement;
+      },
+      interactive: true,
+      interactiveBorder: 10,
+      theme: 'quarto',
+      placement: 'bottom-start'
+    };
+    window.tippy(el, config); 
+  }
+  const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+  for (var i=0; i<noterefs.length; i++) {
+    const ref = noterefs[i];
+    tippyHover(ref, function() {
+      let href = ref.getAttribute('href');
+      try { href = new URL(href).hash; } catch {}
+      const id = href.replace(/^#\/?/, "");
+      const note = window.document.getElementById(id);
+      return note.innerHTML;
+    });
+  }
+  var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+  for (var i=0; i<bibliorefs.length; i++) {
+    const ref = bibliorefs[i];
+    const cites = ref.parentNode.getAttribute('data-cites').split(' ');
+    tippyHover(ref, function() {
+      var popup = window.document.createElement('div');
+      cites.forEach(function(cite) {
+        var citeDiv = window.document.createElement('div');
+        citeDiv.classList.add('hanging-indent');
+        citeDiv.classList.add('csl-entry');
+        var biblioDiv = window.document.getElementById('ref-' + cite);
+        if (biblioDiv) {
+          citeDiv.innerHTML = biblioDiv.innerHTML;
+        }
+        popup.appendChild(citeDiv);
+      });
+      return popup.innerHTML;
+    });
+  }
+});
+</script>
+</div> <!-- /content -->
+
+
+
+</body></html>
