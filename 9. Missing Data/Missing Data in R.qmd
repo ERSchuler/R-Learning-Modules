@@ -22,8 +22,7 @@ This workshop assumes familiarity with R (if not, please see our On-Demand Works
 
 # Set up the environment
 
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+```{r}
 
 #install code
 list.of.packages <- c("tidyverse","mice","miceadds","remotes",
@@ -167,6 +166,9 @@ Missingness maps (two version but same information)
 ```{r}
 #From finalfit
 missing_plot(hs1939_mar)
+```
+
+```{r}
 #From Amelia
 Amelia::missmap(hs1939_mar, legend = TRUE, col = c("wheat","darkred"),
                 y.cex = 0.8, x.cex = 0.8, csvar = NULL, tsvar =NULL, 
