@@ -1,0 +1,506 @@
+---
+title: "Module 3 Descriptive Statistics and Univariate Tests"
+author: "Eric R. Schuler, Ph.D."
+date: "`r Sys.Date()`"
+format: html
+---
+
+In this module we will cover:
+
+- Descriptive Statistics
+- Univariate Tests
+  - t-tests
+  - One-way ANOVA
+  - Factorial ANOVA
+  - Correlation
+  - Regression (OLS and logistic)
+
+First we will install the packages (if needed) and change some options
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+
+list.of.packages <- c("tidyverse","car","yhat","lmtest","forcats","psych","apaTables","sjstats","janitor","dplyr","ggplot2","gridExtra","sandwich","DescTools","performance","see")
+#If you do not already have the package installed, the package is retained
+new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
+#Install packages that are not previously installed
+if(length(new.packages)) install.packages(new.packages,repos = "http://cran.us.r-project.org")
+
+options(scipen = 999)
+
+#set working directory
+setwd("C:/Users/eschuler/Desktop/r short course")
+
+#Load packages
+library(broom)
+library(tidyverse)
+```
+
+
+
+#Import data ----
+```{r}
+hs1939 <- read.csv("hs1939_cleaned.csv")
+hs1939 <- hs1939[-5,] #dropping case 5 that has some missing
+```
+
+we will change sex to a factor
+```{r}
+hs1939$sex <- factor(hs1939$sex)
+janitor::tabyl(hs1939$sex)
+```
+
+We will now make the variable grade into an ordinal variable
+```{r}
+hs1939$grade <- ordered(hs1939$grade, labels = c("7th grade", "8th grade"))
+```
+
+Make school a factor
+```{r}
+hs1939$school <- factor(hs1939$school)
+```
+
+look at the structure of the dataset
+```{r}
+str(hs1939)
+```
+
+look at a table for grade
+```{r}
+table(hs1939$grade)
+```
+
+# Standard dataset checks
+
+structure
+```{r}
+str(hs1939)
+```
+
+
+
+Topic 1 Descriptive Statistics
+
+Descriptives
+
+```{r}
+psych::describe(hs1939)
+```
+
+Frequencies
+```{r}
+janitor::tabyl(hs1939$sex)
+```
+
+Another option that is really neat
+```{r}
+library(summarytools)
+view(dfSummary(hs1939))
+```
+
+
+And finally APA tables for means, sd, and correlation
+  *note* only for continuous variables
+```{r}
+apaTables::apa.cor.table(hs1939)
+```
+
+
+#Independent samples t-test
+
+
+First we start with the Levene's test of equality of variance
+  using the mean
+```{r}
+lev1 <- car::leveneTest(cubes ~ school, data = hs1939, center = "mean")
+lev1
+```
+  using the median, slightly more robust
+```{r}
+lev2 <- car::leveneTest(cubes ~ school, data = hs1939, center = "median")
+lev2
+```
+
+Descriptive statistics by group
+```{r}
+psych::describeBy(hs1939$cubes, group = hs1939$school, mat = TRUE)
+```
+
+Run an indepedent samples t-test
+  *If equal variances are not met, use FALSE
+```{r}
+m1<-t.test(cubes ~ school, data=hs1939, var.equal=TRUE, na.rm=TRUE)
+print(m1)
+```
+
+Get Cohen's D
+```{r}
+rstatix::cohens_d(cubes ~ school, var.equal = TRUE, data = hs1939)
+```
+Create a visual
+```{r}
+ggpubr::ggboxplot(hs1939, x = "school", y = "cubes", 
+          color = "school", palette = c("red", "blue"),
+        ylab = "Cubes Score", xlab = "School")
+
+```
+
+#One-Way ANOVA
+
+We will now run a One-Way ANOVA of cubes. We first need to create a new grouping variable that has three levels
+
+```{r}
+hs1939$group <- rep(1:3,100)
+hs1939$group <- factor(hs1939$group)
+janitor::tabyl(hs1939$group)
+```
+
+Descriptive statistics by group
+```{r}
+psych::describeBy(hs1939$cubes, group = hs1939$group, mat = TRUE)
+```
+
+check with a visual
+```{r}
+ggpubr::ggboxplot(hs1939, x = "group", y = "cubes", 
+          color = "group", palette = c("red", "blue", "green"),
+          ylab = "Cubes Score", xlab = "Group")
+```
+
+We can now run an ANOVA
+```{r}
+aov_ow <- aov(cubes ~ group, data = hs1939)
+summary(aov_ow)
+```
+
+We can also run a posthoc
+```{r}
+pairwise.t.test(hs1939$cubes, hs1939$group, p.adjust.method = "bonferroni")
+```
+
+# Factorial ANOVA
+
+Run a factorial ANOVA of School by Sex on Cube Scores
+
+check frequency tables
+```{r}
+table(hs1939$sex, hs1939$school)
+```
+
+create a visual
+```{r}
+ggpubr::ggboxplot(hs1939, x = "school", y = "cubes", color = "sex",
+                  palette = c("green", "blue"))
+```
+
+run an ANOVA with an interaction
+```{r}
+aov_fact <- aov(cubes~ school * sex, data = hs1939)
+summary(aov_fact)
+```
+
+# Correlation
+
+Here is a good way (other than the APA table used earlier to look at correlation tests one by one)
+```{r}
+#drop ID
+hs1939b <- hs1939[,-1]
+correlation::correlation(hs1939b)
+```
+
+# Ordinary Least Squares (OLS) Regression ----
+
+activate specific libraries
+```{r}
+library(car)
+library(lmtest)
+library(yhat)
+library(psych)
+```
+
+
+check distributions through descriptives
+```{r}
+describe(hs1939$lozenges)
+describe(hs1939$visual_perception)
+```
+check distributions through histograms
+```{r}
+hist(hs1939$lozenges)
+```
+```{r}
+hist(hs1939$visual_perception)
+```
+check distributions through boxplots
+```{r}
+boxplot(hs1939$lozenges)
+```
+```{r}
+boxplot(hs1939$visual_perception)
+```
+
+run model
+```{r}
+ols_results <- lm(visual_perception ~ cubes + lozenges + sex + school + sex*school, data = hs1939)
+summary(ols_results)
+```
+
+print overall model results
+```{r}
+glance(ols_results)
+```
+We can extract model information as well 
+```{r}
+ols_coefficients <- ols_results$coefficients
+ols_coefficients
+```
+
+print coefficients to a .csv file
+```{r}
+write.csv(ols_results, file = "ols coefficients.csv")
+```
+
+fitted values
+```{r}
+ols_fitted <- ols_results$fitted.values
+ols_fitted
+```
+
+check assumptions
+
+check model diagnostics
+```{r}
+ols_results_diag <- augment(ols_results)
+ols_results_diag
+```
+#.fitted = fitted visual_perception scores
+#.resid = residual errors
+#.cooksd = potential outlier
+
+#diagnostic plots
+```{r}
+par(mfrow = c(2,2))
+plot(ols_results)
+```
+residuals vs fitted - used to check linearity (looking for horizontal line)
+Scale-location - homogeneity of variance (looking for horizontal line, even spread)
+Normal Q-Q - used to check normality assumption (should follow a straight line)
+Residuals vs leverage - used to look for outlers,we have a couple more than 3 sd
+
+#Cook's d
+```{r}
+par(mfrow = c(1,1))
+plot(ols_results,4)
+```
+
+to see the top three observations with highest Cook's d
+```{r}
+dplyr::top_n(ols_results_diag, 3, wt = .cooksd)
+```
+Residual vs leverage
+```{r}
+plot(ols_results,5)
+```
+
+store predicted values
+```{r}
+hs1939$ols_pred <- predict.lm(ols_results)
+```
+
+create a formatted regression table to Word
+```{r}
+apaTables::apa.reg.table(ols_results, filename = "ols regression.doc", prop.var.conf.level = 0.95)
+```
+
+additional assessments
+```{r}
+library(performance)
+library(see)
+```
+
+R-squared
+```{r}
+r2(ols_results)
+```
+get AIC
+```{r}
+AIC(ols_results)
+```
+check model
+```{r}
+check_model(ols_results)
+```
+model performance
+```{r}
+model_performance(ols_results)
+```
+check heterogeniety
+```{r}
+check_heteroscedasticity(ols_results)
+```
+or use Studentized Breusch-Pagan test
+```{r}
+bptest(ols_results)
+ncvTest(ols_results)
+```
+check normality
+```{r}
+check_normality(ols_results)
+```
+
+check multicollinearity
+```{r}
+check_collinearity(ols_results)
+```
+
+#can also use VIF
+```{r}
+vif(ols_results)
+```
+
+beta weights, structure coefficients, and commonality analysis
+```{r}
+regr(ols_results)
+```
+
+
+dominance analysis
+
+## All-possible-subsets regression
+```{r}
+apsOut<- aps(hs1939, "visual_perception",list("cubes", "lozenges","sex","school"))
+```
+
+Dominance weights
+```{r}
+dominance(apsOut)
+```
+
+
+Binary Outcome (Logit/Probit)
+
+
+create a binary output
+```{r}
+hs1939$visual_binary[hs1939$visual_perception < 5] <- 0 
+hs1939$visual_binary[hs1939$visual_perception >= 5] <- 1
+hs1939$visual_binary <- factor(hs1939$visual_binary, levels = c(0,1), labels = c( "No", "Yes")) 
+table(hs1939$visual_binary)
+```
+
+check for empty cells with the catagorical variables
+```{r}
+ftable(hs1939$visual_binary, hs1939$school, hs1939$sex)
+```
+Have no empty cells
+
+Logistic model
+```{r}
+log_results <- glm(visual_binary ~ lozenges + school,
+                   family = "binomial", data = hs1939)
+```
+let's look at the results
+```{r}
+summary(log_results)
+```
+coefficients are log-odds
+```{r}
+glance(log_results)
+```
+Obtain pseudo-R-squared
+```{r}
+DescTools::PseudoR2(log_results, which = c("McFadden", "McFaddenAdj", "CoxSnell", "Nagelkerke"))
+r2(log_results)
+```
+provide detailed adds
+```{r}
+log_results_diag <- augment(log_results)
+log_results_diag
+```
+
+
+compare our model with an empty model
+1. Calculate difference in deviance
+```{r}
+with(log_results, null.deviance-deviance)
+```
+2. Calculate degrees of freedom for the difference
+```{r}
+with(log_results, df.null - df.residual)
+```
+3. obtian the p-value
+```{r}
+with(log_results,pchisq(null.deviance-deviance, df.null - df.residual, lower.tail = FALSE))
+```
+4. Loglikelihood ratio test
+```{r}
+logLik(log_results)
+```
+Quick visual
+```{r}
+par(mfrow = c(2,2))
+plot(log_results)
+par(mfrow = c(1,1))
+```
+95% Confidence intervals
+```{r}
+confint(log_results)
+```
+Confidence intervals using standard errors
+```{r}
+confint.default(log_results)
+```
+Odds Ratios
+```{r}
+exp(coef(log_results))
+```
+
+Odds Ratios and 95% CI
+```{r}
+exp(cbind(OR = coef(log_results), confint(log_results)))
+```
+
+predicted probabilities
+
+1. create data frame
+```{r}
+newlogdata <- with(hs1939, data.frame(lozenges= rep(seq(from = 1, to = 6, length.out = 100), 2),
+                                                  school = factor(rep(c("Grant-White","Pasteur"), each =100))))
+
+glimpse(newlogdata)
+```
+```{r}
+newlogdata <- cbind(newlogdata, predict(log_results, newdata = newlogdata, type = "link",
+                                    se = TRUE))
+```
+
+calculate the predicted probabilities and upper/lower bounds
+```{r}
+newlogdata <- within(newlogdata, {
+  PredictPROB <- plogis(fit)
+  LL <- plogis(fit - (1.96 * se.fit))
+  UL <- plogis(fit + (1.96 * se.fit))
+})
+
+head(newlogdata)
+```
+Create a visual
+```{r}
+library(ggplot2)
+
+ggplot(newlogdata, aes(x = lozenges, y = PredictPROB))+geom_ribbon(aes(
+  ymin = LL, ymax = UL, fill = school), alpha = .2) + geom_line(
+    aes(colour = school), size = 1)
+```
+
+
+
+*References:*
+
+- http://www.sthda.com/english/wiki/one-way-anova-test-in-r
+- http://www.sthda.com/english/wiki/two-way-anova-test-in-r
+- https://www.datanovia.com/en/lessons/t-test-in-r/#effect-size-1
+
+Logit resource: 
+
+-https://stats.idre.ucla.edu/r/dae/logit-regression/
