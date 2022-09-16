@@ -1,0 +1,569 @@
+---
+title: "Missing Data in R"
+author: "Eric R. Schuler, Ph.D."
+date: "`r Sys.Date()`"
+format: gfm
+---
+
+**Title:** MIS_ING DAT_: Ways to identify types of missingness and strategies to handle them in R
+
+**Speaker:** Eric R. Schuler
+
+**Description:** Try as hard as we might, missing data happens…In this session we will talk about the types of missingness, ways to inspect missingness, and both traditional and modern approaches to handle missing data (as well as the strengths and weaknesses of each). Then we will move over to R and go over code and ways to assess and handle missingness.
+
+Learning Objectives: At the end of this session, participants will be able to:
+
+1. Define the three types of missingness.
+2. Identify the strengths and weaknesses of different methods of handling missing data. 
+3. Implement strategies to inspect for types of missingness and different approaches to handle missing data in R.
+
+This workshop assumes familiarity with R (if not, please see our On-Demand Workshop on Using R). Additional resources will be provided. 
+
+
+# Set up the environment
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+#install code
+list.of.packages <- c("tidyverse","mice","miceadds","remotes",
+                      "finalfit","Amelia","psych","VIM","modelsummary","lavaan",
+                      "mitools")
+#If you do not already have the package installed, the package is retained
+new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
+#Install packages that are not previously installed
+if(length(new.packages)) install.packages(new.packages)
+
+#packages
+
+
+missmech <- "https://cran.r-project.org/src/contrib/Archive/MissMech/MissMech_1.0.2.tar.gz"
+install.packages(missmech, repos=NULL, type="source")
+
+library(tidyverse)    #data cleaning
+library(MissMech)     #assessing missing mechanisms
+library(mice)         #multivariate imputated changed equations
+library(miceadds)     #additional diagnostics for multiple imputation
+library(finalfit)     #has tests for missingness
+library(Amelia)       #multiple imputation package
+library(psych)        #for descriptive statistics
+library(VIM)          #Visualizing missing data
+library(modelsummary) #for creating model comparison tables
+library(lavaan)       #Latent variable models, contains the test data
+remotes::install_github("njtierney/naniar") #github version has little's MCAR Test
+
+options(scipen = 999) #Turning off scientific notation
+set.seed(86753909)    #Setting the random seed for multiple imputations to create reproducible results.
+```
+
+
+Load the data
+
+We are removing 1 row that has missing so we can later use the ampute functions in the mice package (requires complete data as impute)
+
+We are also going to move ID to rownames so that they will not be a variable listed as "missing" when we amputate.
+```{r}
+hs1939 <- HolzingerSwineford1939[-301,]
+rownames(hs1939)<-hs1939$id
+hs1939 <- hs1939[,-1] #drop id
+```
+
+look at the data to ensure coding is correct
+```{r}
+ff_glimpse(hs1939)
+```
+
+Our analysis of interest is the following regression, using complete data:
+```{r}
+mod_complete <- lm(x1 ~ school + x2 + x3, data = hs1939)
+summary(mod_complete)
+```
+
+We will now create a dataset with missing at random
+See: https://www.gerkovink.com/Amputation_with_Ampute/Vignette/ampute.html
+```{r}
+hs1939_mar_comp <- ampute(hs1939, prop = .70, mech = "MAR")
+hs1939_mar <- hs1939_mar_comp$amp
+```
+We can view how mice amputated the data, the last column is essentially whether or not there was missing (we will manually add this column and a proportion of missingness later as I find it useful)
+```{r}
+md.pattern(hs1939_mar)
+```
+
+How many cases have missingness
+```{r}
+hs1939_mar_comp$prop
+```
+
+As amputate only works with numeric data we will need to reconfigure school to be correct.
+```{r}
+hs1939_mar$school <- factor(hs1939_mar$school, 
+                            level = c(1,2),
+                            labels = c("Grant-White","Pasteur"))
+```
+
+Look at the data
+```{r}
+View(hs1939_mar)
+```
+
+
+Calculate the percent of missingness for each variable
+```{r}
+col_miss <- hs1939_mar%>% summarise_all(list(name = ~sum(is.na(.))/length(.)))
+t(col_miss*100)
+```
+
+Another way using base R
+```{r}
+colSums(is.na(hs1939_mar))
+colSums(is.na(hs1939_mar)) / nrow(hs1939_mar)  
+```
+
+Calculate the proportion of missingness in the dataset (overall)
+```{r}
+sum(is.na(hs1939_mar))/prod(dim(hs1939_mar))
+```
+
+Counts of how many missing values by respondent
+```{r}
+hs1939_mar$missing <- rowSums(is.na(hs1939_mar))
+janitor::tabyl(hs1939_mar$missing)
+```
+
+Proportion of missingness by respondent
+```{r}
+hs1939_mar$missing_prop <- rowSums(is.na(hs1939_mar))/ncol(hs1939_mar)
+summary(hs1939_mar$missing_prop)
+```
+Another way to look at the amount of missingness by ID
+```{r}
+naniar::add_prop_miss(hs1939_mar, label = "percent_missing")
+```
+
+
+We can also run a missin table
+```{r}
+naniar::miss_case_table(hs1939_mar)
+```
+
+First let's get rid of the extra missingness columns
+```{r}
+hs1939_mar <- hs1939_mar[,-c(15,16)]
+```
+
+Show complete cases
+```{r}
+hs1939_mar[complete.cases(hs1939_mar),]
+```
+
+Run our regression with listwise deletion
+```{r}
+model_lwd <- lm(x1 ~ school + x2 + x3, data = hs1939_mar)
+summary(model_lwd)
+```
+
+Missingness maps (two version but same information)
+```{r}
+#From finalfit
+missing_plot(hs1939_mar)
+#From Amelia
+Amelia::missmap(hs1939_mar, legend = TRUE, col = c("wheat","darkred"),
+                y.cex = 0.8, x.cex = 0.8, csvar = NULL, tsvar =NULL, 
+                rank.order = TRUE)
+```
+
+In the Amelia miss map the y-axis is participant ID
+
+Matrix plot. Red for missing values, Darker values are high values.
+```{r}
+matrixplot(hs1939_mar, interactive = T)
+```
+
+We can also look at the distributions for each variable and amount of missingness
+```{r}
+histMiss(hs1939_mar$x1)
+histMiss(hs1939_mar$x2)
+histMiss(hs1939_mar$x3)
+histMiss(hs1939_mar$school)
+```
+
+Visualize missing values with the VIM package in numbers
+```{r}
+aggr(hs1939_mar, prop = F, numbers = T)
+```
+In proportions
+```{r}
+aggr(hs1939_mar, prop = T, numbers = T)
+```
+
+```{r}
+aggr(hs1939_mar, col=c('white','red'), numbers=TRUE, sortVars=TRUE, cex.axis=.7, gap=3, ylab=c("Percentage of missing data","Missing Data Pattern"))
+```
+
+
+Margin plot. Red dots have at least one missing. No observation with two missing values here.
+```{r}
+marginplot(hs1939_mar[,c("x1","x2")])
+```
+
+
+Can also run a MCAR test, normality test, and homoscedasticity
+```{r}
+results <- TestMCARNormality(data=hs1939_mar[,-c(4)])
+print(results)
+```
+
+Assess for missing and school
+```{r}
+factor= c("school")
+dependent = "x1" 
+
+hs1939_mar %>% 
+  summary_factorlist(dependent, factor, 
+                     na_include=TRUE, p=TRUE)
+```
+
+```{r}
+explanatory = c("school","x2", "x3")
+dependent = "x1"
+hs1939_mar %>% 
+  missing_compare(dependent, explanatory) %>% 
+    knitr::kable(row.names=FALSE, align = c("l", "l", "r", "r", "r"), 
+        caption = "Mean comparisons between values of responders (Not missing) and 
+        non-responders (Missing) on the Outcome (x1) variable.") 
+```
+
+If we focus on just our quantitative measures of interest (factors will cause an error)
+```{r}
+explanatory = c("x2", "x3") 
+hs1939_mar %>%
+  dplyr::select(all_of(explanatory)) %>% 
+  MissMech::TestMCARNormality()
+```
+Note that we used only the predictors, we should really use the entire dataset
+
+We can also check the associations between missing and observed of our key variables.
+```{r}
+iv <- c("x2","x3","school")
+dv <- "x1"
+
+hs1939_mar %>% 
+  missing_pairs(dv,iv)
+```
+
+
+Here we will use the mcar_test() used to be part of the BaylorEdPsych package (no longer maintained). 
+
+One issue with this is that if there are more than 50 variables it will not work.
+```{r}
+library(naniar)
+mcar_test(hs1939_mar)
+```
+Based on the statistically significant Little's MCAR test, we violated the assumption of missing completely at random.
+
+
+
+We will now assess for correlations of missingness
+```{r}
+# Create data frame indicating missingness by 1
+x <- as.data.frame(abs(is.na(hs1939_mar)))
+# Select columns with some (but not all) missing values
+y <- x[,sapply(x, sd) > 0]
+# Create a correlation matrix: Variables missing together have high correlation
+corr_mat <-cor(y)
+#View the correlation matrix
+corr_mat
+```
+
+Let's create a heat map of missingness
+```{r}
+library(reshape2)
+cormat<-round(cor(y),2)
+# Get lower triangle of the correlation matrix
+get_lower_tri<-function(cormat){
+  cormat[upper.tri(cormat)] <- NA
+  return(cormat)
+}
+# Get upper triangle of the correlation matrix
+get_upper_tri <- function(cormat){
+  cormat[lower.tri(cormat)]<- NA
+  return(cormat)
+}
+
+upper_tri <- get_upper_tri(cormat)
+upper_tri
+
+melted_cormat <- melt(upper_tri, na.rm = TRUE)
+library(ggplot2)
+ggplot(data = melted_cormat, aes(Var2, Var1, fill = value))+
+  geom_tile(color = "white")+
+  scale_fill_gradient2(low = "blue", high = "red", mid = "white", 
+                       midpoint = 0, limit = c(-1,1), space = "Lab", 
+                       name="Correlation") +
+  theme_minimal()+ 
+  theme(axis.text.x = element_text(angle = 45, vjust = 1, 
+                                   size = 12, hjust = 1))+
+  coord_fixed()
+```
+No strong associations between the variables that have missing
+
+
+# Missing Data Techniques
+
+# Mean Imputation
+
+Here we will just take the sample mean and replace any missing with the mean.
+
+One column at a time
+```{r}
+hs1939_mean <- hs1939_mar
+describe(hs1939_mean$x1)
+hs1939_mean$x1[is.na(hs1939_mean$x1)] <- mean(hs1939_mean$x1, na.rm = TRUE)
+describe(hs1939_mean$x1)
+```
+
+Multiple columns at once
+```{r}
+describe(hs1939_mean)
+
+for(i in 1:ncol(hs1939_mean)) {
+  hs1939_mean[ , i][is.na(hs1939_mean[ , i])] <- mean(hs1939_mean[ , i], na.rm = TRUE)
+}
+
+hs1939_mean
+
+describe(hs1939_mean)
+```
+
+
+We will then run our OLS regression with data that is mean imputed.
+```{r}
+model_mean_imp <- lm(x1 ~ school + x2 + x3, data = hs1939_mean)
+summary(model_mean_imp)
+```
+
+# Regression Imputation
+
+Deterministic: We are replacing missing values with the predicted/fitted values from the regression line.
+
+Factors won't work with this method, so we are going to change it to numeric, manually dummy code it and then force it back to a factor.
+```{r}
+hs1939_mar_reg <- hs1939_mar
+hs1939_mar_reg$school <- as.numeric(hs1939_mar_reg$school)-1
+
+hs1939_mar_dreg <- complete(mice(hs1939_mar_reg, 
+                                 method = "norm.predict",
+                                 m = 1))
+#since we used ols for schools, we need to correct
+hs1939_mar_dreg$school <-ifelse(hs1939_mar_dreg$school >= .5,1,0)
+
+hs1939_mar_dreg$school <- factor(hs1939_mar_dreg$school,
+                                 levels = c(0,1), 
+                                 labels = c("Grant-White",
+                                            "Pasteur"))
+janitor::tabyl(hs1939_mar_dreg$school)
+```
+
+
+We will run the regression with the deterministic regression imputation
+```{r}
+mod_dreg <- lm(x1 ~ school + x2 + x3,
+              data = hs1939_mar_dreg)
+summary(mod_dreg)
+```
+
+Stochastic regression: We are replacing missing values with the predicted/fitted values from the regression line PLUS a little error. The addition of the error makes it one of the better options of classical imputation strategies.
+```{r}
+hs1939_mar_sreg <- complete(mice(hs1939_mar_reg, 
+                                 method = "norm.nob",
+                                 m = 1))
+
+#since we used ols for schools, we need to correct
+hs1939_mar_sreg$school <-ifelse(hs1939_mar_sreg$school >= .5,1,0)
+
+#We will then return it to a factor and add the labels back.
+hs1939_mar_sreg$school <- factor(hs1939_mar_sreg$school,
+                                 levels = c(0,1), 
+                                 labels = c("Grant-White",
+                                            "Pasteur"))
+janitor::tabyl(hs1939_mar_sreg$school)
+```
+
+
+We will run the regression with the stochastic regression imputation
+```{r}
+mod_sreg <- lm(x1 ~ school + x2 + x3,
+              data = hs1939_mar_sreg)
+summary(mod_sreg)
+```
+
+# Multiple Imputation
+
+MICE (multivariate Imputation by Chained Equations): uses a Gibbs sampling to incomplete data. Each column is a target and all other variables are used as predictors. Plausible synthetic (read predicted or fitted) are generated and generated imputations are used to complete the predictors prior to imputation if the target column. Here we will set the number of imputations to 20.
+```{r, include = FALSE}
+hs1939_mi <- mice(hs1939_mar, m = 20)
+```
+
+Look at the imputation methods and predictor matrix from mice
+  PMM: predictive mean matching
+  LOGREG: logistic regression
+```{r}
+print(hs1939_mi)
+```
+
+Plot mi object to look at the trace plots of the Markov Chain Monte Carlo for the mean and sd for each variable across imputations to check for convergence.
+```{r}
+plot(hs1939_mi)
+```
+
+Check imputed values for variable 'x1' 
+  20 columns for 20 datasets
+```{r}
+hs1939_mi$imp$x1
+```
+
+Show 3rd imputed dataset
+***DO NOT USE IMPUTE A SINGLE DATASET AND USE THAT FOR ANALYSES, IT DEFEATS THE PURPOSE OF MULTIPLE IMPUTATION***
+```{r}
+complete(hs1939_mi, action = 3)
+```
+
+We will now run the linear model with 20 multiple imputed datasets
+```{r}
+model_mi <- with(hs1939_mi, lm(x1 ~ school + x2 + x3))
+pool(model_mi)
+```
+
+We can also look at the results by imputation
+```{r}
+print(model_mi)
+```
+
+
+Here is another great multiple imputation package
+Amelia (named after Amelia Earhart)
+
+```{r}
+hs1939_mar$sex <- factor(hs1939_mar$sex, 
+                         levels=c(1,2),
+                         labels = c("Female","Male"))
+```
+
+Here is the amelia code
+```{r}
+hs1939_mi_amelia <- amelia(hs1939_mar, intercs=FALSE,nom=c(1,4), m=20)
+summary(hs1939_mi_amelia$imputations)
+```
+Notice we have some negatives, we may want to create bounds for the variables
+
+Create variable bounds
+```{r}
+b <-c(3,6,7,8,9,10,11,12,13,14,0,1,1,1,1,1,1,1,1,1,11,10,10,10,10,10,10,10,10,10)
+bound <- matrix(b,10,3)
+bound
+```
+
+We can now rerun with bounds
+```{r}
+hs1939_mi_amelia <- amelia(hs1939_mar, intercs=FALSE,nom=c(1,4),
+                           bounds=bound,m=20)
+summary(hs1939_mi_amelia$imputations)
+```
+
+We can inspect the amelia object
+```{r}
+summary(hs1939_mi_amelia)
+```
+
+There is also an interactive GUI (will only work with Windows/Linux): https://cran.r-project.org/web/packages/Amelia/vignettes/amelia.pdf and file:///C:/Users/eschuler/Downloads/v45i07.pdf (page 6)
+```{r}
+AmeliaView()
+```
+
+Summary plots for the amelia object
+```{r}
+plot(hs1939_mi_amelia)
+```
+
+Need to create an imputation list to pass the object through the linear model
+```{r}
+mydata <- mitools::imputationList(hs1939_mi_amelia$imputations)
+```
+
+Run the linear model with amelia and pool the results
+```{r}
+model_mi_amelia <- with(mydata,lm(x1 ~ school + x2 + x3))
+pool(model_mi_amelia)
+```
+
+Smaller summary with p-values
+```{r}
+summary(pool(model_mi_amelia))
+```
+
+
+Full Information Maximum Likelihood (FIML)
+
+FIML in lavaan won't work with factors, we will need to manually dummy code
+
+```{r}
+hs1939_mar_fiml <-hs1939_mar
+hs1939_mar_fiml$school <- as.numeric(hs1939_mar_fiml$school)-1
+janitor::tabyl(hs1939_mar_fiml$school)
+```
+
+Multiple regression in lavaan
+```{r}
+model <- '
+  x1 ~ school + x2 + x3
+  x2 ~~ x3
+  x3 ~~ school
+  school ~~ x2
+'
+```
+
+Run the multiple regression
+```{r}
+fit <- sem(model, hs1939_mar_fiml, 
+           missing = 'fiml', 
+           meanstructure = TRUE,
+           fixed.x = FALSE)
+```
+
+Check the model
+```{r}
+summary(fit, rsquare = TRUE, standardize = TRUE)
+```
+
+Going to create a list of all the models and store the models 
+  (minus fiml)
+```{r}
+models <- list()
+models[['Complete Data']] <- mod_complete
+models[['Listwise Deletion']] <- model_lwd
+models[['Mean Imputation']] <- model_mean_imp
+models[['Deterministic Regression']] <- mod_dreg
+models[['Stochastic Regression']] <- mod_sreg
+models[['Multiple Imputation-MICE']] <- pool(model_mi)
+models[['Multiple Imputation-Amelia']] <- pool(model_mi_amelia)
+```
+
+Now we will compare how well our models functions with different implementations of handling missingness. We can use the msummary() to create a model comparison table and have stars to denote statistical significance (we will have it export to Word).
+```{r}
+msummary(models, stars = c('*' = .050, '**' = .010, '***' = .001), output = 'missing_reg_table.docx',)
+```
+
+
+# RESOURCES:
+
+#Enders - Applied Missing Data
+  #Permalink: https://wrlc-amu.primo.exlibrisgroup.com/permalink/01WRLC_AMU/1sph5q5/alma9981267103604102
+  #Materials: http://www.appliedmissingdata.com/
+#Applied missing data analysis in the health sciences
+  #https://wrlc-amu.primo.exlibrisgroup.com/permalink/01WRLC_AMU/1sph5q5/alma99186178068004102
+https://statisticsglobe.com/regression-imputation-stochastic-vs-deterministic/
+https://www.ncbi.nlm.nih.gov/pmc/articles/PMC6936760/
+https://www.nerler.com/dissertation/_book/ch-sim
+-http://www.stat.columbia.edu/~gelman/arm/missing.pdf
+https://cran.r-project.org/web/packages/finalfit/vignettes/missing.html
