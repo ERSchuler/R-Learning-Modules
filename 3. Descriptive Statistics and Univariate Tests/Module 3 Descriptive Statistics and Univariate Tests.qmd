@@ -2,7 +2,9 @@
 title: "Module 3 Descriptive Statistics and Univariate Tests"
 author: "Eric R. Schuler, Ph.D."
 date: "`r Sys.Date()`"
-format: html
+project:
+  type: website
+  output-dir: docs
 ---
 
 In this module we will cover:
