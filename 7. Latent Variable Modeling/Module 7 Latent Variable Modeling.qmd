@@ -1,0 +1,584 @@
+---
+title: "Module 7 Latent Variable Modeling"
+author: "Eric R. Schuler, Ph.D."
+date: "`r Sys.Date()`"
+format: html
+---
+
+This module will cover the basics of Latent Variable modeling. 
+Specifically, how to conduct: 
+
+* A confirmatory factor analysis (CFA)
+* Multigroup CFA for measurement invariance
+* Structural regression model (regression with latent variables)
+
+
+Set-up and Load Packages
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+
+list.of.packages <- c("tidyverse","psych","broom","lavaan","semTools","semPlot",
+                      "semTable","plyr","modelsummary")
+#If you do not already have the package installed, the package is retained
+new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
+#Install packages that are not previously installed
+if(length(new.packages)) install.packages(new.packages,repos = "http://cran.us.r-project.org")
+
+#Activate the libraries
+library(tidyverse) #Used for data cleaning and structuring
+library(lavaan)    #For running latent variable models
+library(psych)     #For descriptive statistics (overall and by group)
+library(semTools)  #Additional tools for latent variable modeling
+library(semPlot)   #To view a graphical representation of the latent variable model
+library(semTable)
+
+#We will call on only one function from broom and plyr so we will not activate them but rather 
+#call on the specific functions needed
+```
+
+# **Basic Confirmatory Factor Analysis in R**
+
+Set working directory
+```{r}
+setwd("C:/Users/eschuler/Desktop/r short course/")
+```
+
+Read in Data
+
+```{r}
+data <- read.csv("hs1939_cleaned.csv")
+data$school <- as.factor(data$school)
+plyr::count(data$school)
+```
+
+Describe Data
+
+Overall
+```{r}
+describe(data)
+```
+
+By school
+```{r}
+describeBy(data, group = data$school)
+```
+
+Check normality (multivariate)
+```{r}
+mardia(data[,7:15])
+```
+
+Lavaan CFA code
+
+```{r}
+hs.model <- '  visual =~ visual_perception + cubes + lozenges
+              textual =~ paragraph_completion + sentence_completion + word_meaning
+              speed   =~ speeded_addition + speeded_counting + speeded_discrimination '
+
+```
+
+
+Method 1:
+
+Run overall CFA
+```{r}
+fit_overall <- cfa(hs.model, data = data)
+summary(fit_overall, fit.measures = TRUE, rsquare=TRUE)
+```
+Look at the compact model fit indices
+```{r}
+broom::glance(fit_overall)
+```
+
+Obtain additional fit indices (optional)
+```{r}
+moreFitIndices(fit_overall)
+```
+
+Extract parameters
+```{r}
+parameterEstimates(fit_overall, boot.ci.type="bca.simple")
+```
+
+Visualize model
+```{r, fig.cap = "visual of the three factor cfa solution"}
+semPaths(fit_overall,curvePivot = TRUE, thresholds = FALSE)
+```
+
+Inspect modification indices
+  Any modifications need to be based on theory not model fit improvement, modification
+  indiced are purely a theoretical.
+```{r}
+mi_overall <- modificationIndices(fit_overall)
+mi_overall
+```
+
+Other options:
+
+Parameter Estimates
+```{r}
+parameterEstimates(fit_overall)
+```
+
+Standardized Solution
+```{r}
+standardizedSolution(fit_overall)
+```
+
+
+Return the model-implied (fitted) covariance matrix
+```{r}
+fitted(fit_overall)
+```
+
+Inspect the residuals
+```{r}
+resid(fit_overall, type = "standardized")
+```
+
+Return the covariance matrix of the paramter estimates
+```{r}
+vcov(fit_overall)
+```
+
+Obtain the AIC and BIC
+```{r}
+AIC(fit_overall)
+BIC(fit_overall)
+```
+
+Additional fit measures
+```{r}
+fitMeasures(fit_overall)
+```
+
+
+To get specific fit measures
+```{r}
+fitMeasures(fit_overall, c("cfi","rmsea","srmr"))
+```
+
+
+Inspect the starting values of the parameters
+```{r}
+inspect(fit_overall, what = "start")
+```
+
+
+Extract model information
+```{r}
+unstand_table <- parameterestimates(fit_overall)
+beta_table <- standardizedSolution(fit_overall, type = "std.all", se=TRUE, partable = NULL)
+r_sqrd <- round(lavInspect(fit_overall, what = "rsquare"),2)
+corr <- lavInspect(fit_overall, what = "cor.lv")
+```
+
+combine tables
+```{r}
+table_cfa <- cbind(unstand_table,beta_table)
+table_cfa <- table_cfa[,-c(14:18)]
+table_cfa <- table_cfa[,-c(10:12)]
+table_cfa <- table_cfa[-c(10:24),]
+```
+
+round some of the values to two decimal places
+```{r}
+table_cfa$est <- round(table_cfa$est,2)
+table_cfa$se <- round(table_cfa$se,2)
+table_cfa$z <- round(table_cfa$z,2)
+table_cfa$ci.lower <- round(table_cfa$ci.lower,2)
+table_cfa$ci.upper <- round(table_cfa$ci.upper,2)
+table_cfa$pvalue <- round(table_cfa$pvalue,3)
+table_cfa$est.std <- round(table_cfa$est.std,2)
+```
+
+Add structure coefficients (correlation times the standardized estimate)
+```{r}
+table_cfa$struct_visual <- NA
+table_cfa$struct_textual <- NA
+table_cfa$struct_speed <- NA
+
+table_cfa$struct_visual[1:3]<- "."
+table_cfa$struct_visual[4:6]<- round(table_cfa$est.std[4:6] * corr[1,2],2)
+table_cfa$struct_visual[7:9]<- round(table_cfa$est.std[7:9] * corr[1,3],2)
+
+table_cfa$struct_textual[1:3]<- round(table_cfa$est.std[1:3] * corr[2,1],2)
+table_cfa$struct_textual[4:6]<- "."
+table_cfa$struct_textual[7:9]<- round(table_cfa$est.std[7:9] * corr[2,3],2)
+
+table_cfa$struct_speed[1:3]<- round(table_cfa$est.std[1:3] * corr[3,1],2)
+table_cfa$struct_speed[4:6]<- round(table_cfa$est.std[4:6] * corr[3,2],2)
+table_cfa$struct_speed[7:9]<- "."
+```
+
+Add the $R^2$ vector to the table
+
+```{r}
+table_cfa$r_squared <- r_sqrd
+```
+
+
+```{r}
+table_cfa <- table_cfa[,-c(2,6,7,8,9)]
+```
+
+
+```{r}
+colnames(table_cfa) <- c("Latent Variable","Indicator","Unstand.","SE","Stand.","Visual","Textual","Speed","R-Squared")
+```
+
+Let's format the table a bit
+```{r}
+library(gt)
+
+
+
+table_cfa_pub <-tab_spanner(gt(table_cfa), label = "Structure Coefficients",
+                            columns = vars("Visual","Textual","Speed"))
+                           
+
+table_cfa_pub <- tab_header(table_cfa_pub,
+                            title = "Measurement Model for Three Latent Variables")
+table_cfa_pub
+```
+
+Now we can export it to a .RTF document, change the layout to landscape and do some cell resizing/font changes
+```{r}
+gtsave(table_cfa_pub, "Formated Measurement Model.rtf")
+```
+
+# A Note on Ordinal/Likert Data:
+
+It is important to note that these are for continuous indicators, for how to run these with
+ordinal indicators (i.e., Likert), see Hirschfeld & von Brachel (2014). An additional 
+argument is needed that there are ordered items. lavaan will automatically switch to the 
+WLSMV estimator: it will use diagonally weighted least squares (DWLS) to estimate the 
+model parameters, but it will use the full weight matrix to compute robust standard errors, 
+and a mean- and variance-adjusted test stastistic.
+
+
+Code would look like:
+  #Note this is commented out as the indicators with this dataset are continuous and not ordinal
+```{r}
+#fit_config_ord <- cfa(hs.model, 
+#                      data = data, 
+#                      ordered = c("visual_perception","cubes","lozenges",
+#                                  "paragraph_completion","sentence_completion",
+#                                  "word_meaning","speeded_addition",
+#                                  "speeded_counting","speeded_discrimination"))
+#
+```
+
+
+# **Multigroup CFA**
+
+We will go over two methods that will provide the same results. The first method give you
+more control and added ability to inspect the models (which you should do at each and every step)
+
+#Configural Invariance
+  Configural is that the factor structure is the same for each group, that the number of
+  factors and indicators are the same as well as which indicator for each factor
+
+```{r}
+fit_configural <- cfa(hs.model, data = data, group = "school")
+summary(fit_configural,fit.measures = TRUE)
+```
+
+Look at the compact model fit indices
+```{r}
+broom::glance(fit_configural)
+```
+
+#Metric Invariance (sometimes called weak invariance)
+  Metric is that the loadings are the same for each group. If they are not, then that means 
+  that the constructs are manifested differently in the groups.
+
+Constrain path coefficients (loadings) to be the same across groups
+```{r}
+fit_metric <- cfa(hs.model, 
+           data = data, 
+           group = "school",
+           group.equal = c("loadings"))
+summary(fit_metric,fit.measures = TRUE)
+```
+
+Look at the compact model fit indices
+```{r}
+broom::glance(fit_metric)
+```
+
+#Scalar Invariance (sometimes called strong invariance)
+  Scalar invariance means that the groups use the same response scale of the indicator in the
+  same way. If a person from one group has the sample level of the construct as someone in 
+  the other group then they should have the same score on the indicator.
+    
+Constrain intercepts to be the same across groups
+```{r}
+fit_scalar <- cfa(hs.model, 
+           data = data, 
+           group = "school",
+           group.equal = c("loadings","intercepts"))
+summary(fit_scalar,fit.measures = TRUE)
+```
+
+Look at the compact model fit indices
+```{r}
+broom::glance(fit_scalar)
+```
+
+
+#Strict Invariance
+  This has the error variances and covariances set to be equal across groups. If this is met
+  then it means that the indicators measure the same factors in each group with the same 
+  degree of precision.
+
+```{r}
+fit_strict <- cfa(hs.model, 
+           data = data, 
+           group = "school",
+           group.equal = c("loadings","intercepts", "residuals"))
+summary(fit_strict,fit.measures = TRUE)
+```
+Look at the compact model fit indices
+```{r}
+broom::glance(fit_strict)
+```
+
+Compare the models
+```{r}
+compareFit(fit_configural, fit_metric, fit_scalar, fit_strict)
+```
+
+Could also run as an ANOVA (different function but does the same thing)
+```{r}
+anova(fit_configural,fit_metric,fit_scalar,fit_strict)
+```
+
+
+Here is a different approach (Method 2):
+
+Let's try with the built in function from semTools 
+```{r}
+measurementInvariance(model = hs.model,
+                      data = data,
+                      group = "school")
+```
+
+
+# Tables
+
+Let's create an almost publication ready table with the different fit indices
+```{r}
+#First we will extract the model fit indices
+config <- broom::glance(fit_configural)
+metric <- broom::glance(fit_metric)
+scalar <- broom::glance(fit_scalar)
+strict <- broom::glance(fit_strict)
+#create a column to identify the model
+model <- c("Configural","Metric","Scalar","Strict")
+#Bind everything together
+mi_table <- rbind(config,metric,scalar,strict)
+mi_table <- cbind(model,mi_table)
+#remove some columns
+mi_table <- mi_table[,-c(2,3,4,9,12:18)]
+
+#Create change scores for determination based on Chen, 2007
+mi_table$delta_cfi <- ave(mi_table$cfi, FUN=function(x) c(0,diff(x)))
+mi_table$delta_tli <- ave(mi_table$tli, FUN=function(x) c(0,diff(x)))
+mi_table$delta_srmr <- ave(mi_table$srmr, FUN=function(x) c(0,diff(x)))
+mi_table$delta_rmsea <- ave(mi_table$rmsea, FUN=function(x) c(0,diff(x)))
+
+#Round model fit scores to two decimal places
+mi_table$cfi <- round(mi_table$cfi,2)
+mi_table$delta_cfi <- round(mi_table$delta_cfi,2)
+mi_table$rmsea <- round(mi_table$rmsea,2)
+mi_table$delta_rmsea <- round(mi_table$delta_rmsea,2)
+mi_table$srmr <- round(mi_table$srmr,2)
+mi_table$delta_srmr <- round(mi_table$delta_srmr,2)
+mi_table$tli <- round(mi_table$tli,2)
+mi_table$delta_tli <- round(mi_table$delta_tli,2)
+mi_table$chisq <- round(mi_table$chisq,2)
+
+#reorder the columns
+mi_table <- select(mi_table, "model","cfi","delta_cfi", "rmsea","delta_rmsea","srmr",
+                   "delta_srmr", "tli", "delta_tli","chisq","npar")
+#change the first values of the delta columns to '.' rather than 0
+mi_table[1,3] <- "."
+mi_table[1,5] <- "."
+mi_table[1,7] <- "."
+mi_table[1,9] <- "."
+```
+
+Let's view the table
+```{r}
+gt(mi_table)
+```
+
+Now we can export it to a .RTF document, change the layout to landscape and do some cell resizing/font changes
+```{r}
+gtsave(gt(mi_table), "Formated Measurement Invariance Table.rtf")
+```
+
+# Measurement Invariance Resources
+
+  semTools reference: https://cran.r-project.org/web/packages/semTools/semTools.pdf
+  Lavaan project: https://lavaan.ugent.be/tutorial/groups.html
+  Testing for Measurement Invariance: https://bookdown.org/content/5737/
+  For equavalence testing: https://cran.r-project.org/web/packages/equaltestMI/equaltestMI.pdf
+
+# For assessing measurement invariance, please use the folllowing criteria:
+
+Citation: 
+Chen, F. F. (2007). Sensitivity of goodness of fit indexes to lack of measurement invariance. Structural equation modeling: a multidisciplinary journal, 14(3), 464-504.
+
+Link: https://www.tandfonline.com/doi/pdf/10.1080/10705510701301834?casa_token=QKB7027I3GkAAAAA:Sb-3DMNuG5C0p2SvJc6I-ks8DK6mwh3x0_besE-6WqDIYtyj7RL6JucWFWmqSjo-kdQb1ohg4axA
+  
+
+# **Structural Regression Models**
+
+Here we will use another dataset from Bollen (1989)
+
+Read in data from the Lavaan vignette
+
+```{r}
+PoliticalDemocracy <- PoliticalDemocracy
+```
+
+Now we will build the measurement models
+
+ind60 measurement model
+```{r}
+ind60_model <- '
+    ind60 =~ x1 + x2 + x3
+  '
+```
+
+Run the model
+```{r}
+ind60_fit <- sem(ind60_model, data=PoliticalDemocracy)
+summary(ind60_fit, standardized=TRUE,fit.measures = TRUE)
+```
+
+Look at the compact model fit indices
+```{r}
+broom::glance(ind60_fit)
+```
+
+View the model
+```{r}
+semPlot::semPaths(ind60_fit, "est",
+                  sizeMan = 10, sizeInt = 10, sizeLat = 10,
+                  edge.label.cex=1.5,
+                  fade=FALSE)
+```
+
+dem60 measurement model
+```{r}
+dem60_model <- '
+    dem60 =~ y1 + y2 + y3 + y4
+  '
+```
+
+Run the model
+```{r}
+dem60_fit <- sem(dem60_model, data=PoliticalDemocracy)
+summary(dem60_fit, standardized=TRUE,fit.measures = TRUE)
+```
+
+Look at the compact model fit indices
+```{r}
+broom::glance(dem60_fit)
+```
+
+View the model
+```{r}
+semPlot::semPaths(dem60_fit, "est",
+                  sizeMan = 10, sizeInt = 10, sizeLat = 10,
+                  edge.label.cex=1.5,
+                  fade=FALSE)
+```
+
+dem65 measurement model
+```{r}
+dem65_model <- '
+    dem65 =~ y5 + y6 + y7 + y8
+  '
+```
+
+Run the model
+```{r}
+dem65_fit <- sem(dem65_model, data=PoliticalDemocracy)
+summary(dem65_fit, standardized=TRUE,fit.measures = TRUE)
+```
+
+Look at the compact model fit indices
+```{r}
+broom::glance(dem65_fit)
+```
+
+View the model
+```{r}
+semPlot::semPaths(dem65_fit, "est",
+                  sizeMan = 10, sizeInt = 10, sizeLat = 10,
+                  edge.label.cex=1.5,
+                  fade=FALSE)
+```
+
+
+Let's put it all together
+```{r}
+model <- '
+  # measurement model
+    ind60 =~ x1 + x2 + x3
+    dem60 =~ y1 + y2 + y3 + y4
+    dem65 =~ y5 + y6 + y7 + y8
+  # regressions
+    dem60 ~ ind60
+    dem65 ~ ind60 + dem60
+  # residual correlations
+    y1 ~~ y5
+    y2 ~~ y4 + y6
+    y3 ~~ y7
+    y4 ~~ y8
+    y6 ~~ y8
+'
+```
+
+
+Run the model
+```{r}
+sr_fit <- sem(model, data=PoliticalDemocracy)
+summary(sr_fit, standardized=TRUE,fit.measures = TRUE)
+```
+
+Look at the compact model fit indices
+```{r}
+broom::glance(sr_fit)
+```
+
+View the model
+```{r}
+semPlot::semPaths(sr_fit, "est",
+                  sizeMan = 10, sizeInt = 10, sizeLat = 10,
+                  edge.label.cex=1.5,
+                  fade=FALSE)
+```
+
+**Resources:**
+
+Online Tutorials:
+
+-  Lavaan Tutorial: https://lavaan.ugent.be/tutorial/index.html
+-  Structural Equation Modling in R for Ecology and Evolution: https://jslefche.github.io/sem_book/index.html
+-  Latent Variable Moding Using R: A Step-By-Step Guide: https://blogs.baylor.edu/rlatentvariable/sample-page/r-syntax/
+-  Bayesian SEM: https://faculty.missouri.edu/~merklee/blavaan/
+-  UCLA IDRE Workshop: https://stats.idre.ucla.edu/r/seminars/rcfa/
+- https://benwhalley.github.io/just-enough-r/cfa.html
+  
+Books:
+
+-  Bollen, K. A. (1989). Measurement models: The relation between latent and observed variables. 
+      Structural equations with latent variables, 179-225.
+-  Finch, W. H., & French, B. F. (2015). Latent variable modeling with R. Routledge.
+-  Kline, R. B. (2015). Principles and practice of structural equation modeling. Guilford publications.
