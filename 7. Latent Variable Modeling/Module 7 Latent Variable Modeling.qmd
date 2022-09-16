@@ -2,7 +2,7 @@
 title: "Module 7 Latent Variable Modeling"
 author: "Eric R. Schuler, Ph.D."
 date: "`r Sys.Date()`"
-format: html
+format: gfm
 ---
 
 This module will cover the basics of Latent Variable modeling. 

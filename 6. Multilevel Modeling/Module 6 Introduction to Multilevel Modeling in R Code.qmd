@@ -2,10 +2,7 @@
 title: "Module 6 Multilevel Modeling (Introduction)"
 author: "Eric R. Schuler, Ph.D."
 date: "`r Sys.Date()`"
-format: html
-editor: 
-  markdown: 
-    wrap: 72
+format: gfm
 ---
 
 This module will cover the basics of multilevel modeling in R when
