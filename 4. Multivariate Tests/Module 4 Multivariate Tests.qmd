@@ -1,0 +1,317 @@
+---
+title: "Module 4 Multivariate Statistics"
+author: "Eric R. Schuler, Ph.D."
+date: "`r Sys.Date()`"
+format: gfm
+---
+
+In this module, we will cover how to run a:
+
+- MANOVA
+- Linear Discriminant Analysis
+- Factor Analysis
+- Canonical Correlation
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+list.of.packages <- c("tidyverse","car","yhat","lmtest","forcats","psych","apaTables","sjstats","janitor","dplyr","ggplot2","gridExtra","sandwich","DescTools","performance","see")
+#If you do not already have the package installed, the package is retained
+new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
+#Install packages that are not previously installed
+if(length(new.packages)) install.packages(new.packages,repos = "http://cran.us.r-project.org")
+
+options(scipen = 999)
+
+#set working directory
+setwd("C:/Users/eschuler/Desktop/r short course")
+
+#Load packages
+library(tidyverse)
+library(broom)
+```
+
+#Import data
+```{r}
+hs1939 <- read.csv("hs1939_cleaned.csv")
+hs1939 <- hs1939[-5,] #dropping case 5 that has some missing
+```
+
+we will change sex to a factor
+```{r}
+hs1939$sex <- factor(hs1939$sex)
+janitor::tabyl(hs1939$sex)
+```
+
+We will now make the variable grade into an ordinal variable
+```{r}
+hs1939$grade <- ordered(hs1939$grade, labels = c("7th grade", "8th grade"))
+```
+
+Make school a factor
+```{r}
+hs1939$school <- factor(hs1939$school)
+```
+
+# MANOVA
+```{r}
+manova_res <- manova(cbind(cubes,visual_perception) ~ school, data = hs1939)
+summary(manova_res)
+```
+
+Follow-up ANOVAs
+```{r}
+summary.aov(manova_res)
+```
+
+# Linear Discriminant Analysis (lda)
+```{r}
+library(MASS)
+```
+
+Run an lda
+```{r}
+lda_res <- lda(school ~ cubes + lozenges + visual_perception, data = hs1939)
+```
+
+View the results
+```{r}
+lda_res
+```
+
+We can then plot the model
+```{r}
+plot(lda_res)
+```
+
+Factor Analysis
+Code adapted from: https://rpubs.com/pjmurphy/758265
+
+We will be using the psych package for this.
+```{r}
+library(psych)
+```
+
+Holzinger and Swineford 1939 data but dropping demographics and variables we created
+```{r}
+hs<-hs1939[,-c(1:6,16,17)]
+```
+
+Running a KMO test
+```{r}
+KMO(hs)
+```
+
+Bartlett's test of sphericity
+```{r}
+cortest.bartlett(hs)
+```
+
+Dimensionality
+
+We will use a couple methods
+
+Eigenvalue greater than 1
+```{r}
+ev <- eigen(cor(hs))
+ev$values
+```
+Here we can see three factors
+
+Let's examine a scree plot
+  If pc=TRUE it will be for principle components analysis (PCA)
+```{r}
+scree(hs, pc=FALSE)
+```
+
+Better option is for parallel analysis
+  If running a PCA, use "pc" rather than "fa"
+```{r}
+fa.parallel(hs,fa="fa")
+```
+
+Another good option is vss which also runs minimum average partial
+```{r}
+vss(hs)
+```
+
+factor analysis
+
+we will set the number of factors
+```{r}
+Nfac <- 3
+```
+
+First we need to activate another package
+```{r}
+library(GPArotation)
+```
+  
+Here we have the dataset, number of factors, and we will use promax, an oblique rotation, if we found a low correlation, we would change promax to varimax to have it be an orthogonal rotation which makes it easier to interpret.
+```{r}
+fa.obl <- fa(cov(hs),fm="pa",Nfac,rotate="promax")
+```
+
+```{r}
+fa.obl
+```
+Print the coefficients (path coefficients, pattern coefficients, uniqueness, and communality)
+```{r}
+print(fa.obl, digits=2, cutoff=.3, sort=TRUE)
+```
+plot factor 1 by 2
+```{r}
+load1 <- fa.obl$loadings[,1:2]
+plot(load1,type="n")
+text(load1,labels=names(hs),cex=.7)
+```
+
+plot factor 1 by 3
+```{r}
+load2 <- fa.obl$loadings[,c(1,3)]
+plot(load2,type="n")
+text(load2,labels=names(hs),cex=.7)
+```
+
+plot factor 2 by 3
+```{r}
+load3 <- fa.obl$loadings[,c(2,3)]
+plot(load3,type="n")
+text(load3,labels=names(hs),cex=.7)
+```
+
+We can also inspect a diagram
+```{r}
+loads <- fa.obl$loadings
+fa.diagram(loads)
+```
+
+We can then run internal reliabilty
+
+First we subset by factor
+```{r}
+f1 <- hs[,c("visual_perception","cubes","lozenges")]
+f2 <- hs[,c("paragraph_completion","sentence_completion","word_meaning")]
+f3 <- hs[,c("speeded_addition","speeded_counting","speeded_discrimination")]
+```
+
+
+Then reliability
+
+Factor 1
+```{r}
+psych::alpha(f1)
+```
+
+Factor 2
+```{r}
+psych::alpha(f2)
+```
+
+Factor 3
+```{r}
+psych::alpha(f3)
+```
+
+# Cannonical Correlation
+
+Code adapted from: https://stats.oarc.ucla.edu/r/dae/canonical-correlation-analysis/
+
+```{r}
+library(ggplot2)
+library(GGally)
+library(CCA)
+```
+
+
+
+We will now make a group of predictors
+```{r}
+pred <- hs1939[,10:12]
+```
+
+And a group of outcomes
+```{r}
+out <- hs1939[,7:9]
+```
+
+View the pairs of predictor variables
+```{r}
+ggpairs(pred)
+```
+
+View the pairs of outcome variables
+```{r}
+ggpairs(out)
+```
+Print out correlations of the sets
+```{r}
+matcor(pred,out)
+```
+
+run a canonical correlation
+```{r}
+cc_res <- cc(pred,out)
+```
+
+Look at the canonical correlation
+```{r}
+cc_res$cor
+```
+
+raw canonical correlation
+```{r}
+cc_res[3:4]
+```
+
+
+compute and displate the canonical loadings
+```{r}
+cc2 <- comput(pred, out, cc_res)
+
+# display canonical loadings
+cc2[3:6]
+```
+
+We can test the number of canonical dimensions
+```{r}
+rho <- cc_res$cor
+```
+
+
+We will then define the number of observations, and variables in each set
+```{r}
+n <- dim(pred[1])
+p <- length(pred)
+o <- length(out)
+```
+
+Calculate the p-values
+```{r}
+library(CCP)
+p.asym(rho,n,p,o, tstat="Wilks")
+p.asym(rho,n,p,o, tstat="Hotelling")
+p.asym(rho,n,p,o, tstat="Pillai")
+```
+
+Now we can standardize the coefficients for interpretation
+
+Pred
+```{r}
+s1 <- diag(sqrt(diag(cov(pred))))
+s1 %*% cc_res$xcoef
+```
+
+Out
+```{r}
+s1 <- diag(sqrt(diag(cov(out))))
+s1 %*% cc_res$xcoef
+```
+
+
+Resources:
+
+- MANOVA: http://www.sthda.com/english/wiki/manova-test-in-r-multivariate-analysis-of-variance
+- Factor Analysis: https://rpubs.com/pjmurphy/758265
+- DDA: http://www.sthda.com/english/articles/36-classification-methods-essentials/146-discriminant-analysis-essentials-in-r/#:~:text=Discriminant%20analysis%20is%20used%20to,and%2For%20categorical%20predictor%20variables. 
+- CCA: https://stats.idre.ucla.edu/r/dae/canonical-correlation-analysis/
