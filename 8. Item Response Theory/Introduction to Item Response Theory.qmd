@@ -22,11 +22,6 @@ format: gfm
 This workshop assumes familiarity with R (if not, please see our On-Demand Workshop on Using R). Additional resources will be provided. 
 
 
-Set Working Directory
-```{r}
-setwd("F:/BMI Manuscript and code 20220403/IRT Workshop/IRT")
-```
-
 We will now check to see if the packages we need are already installed (if any are missing they will be added)
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
