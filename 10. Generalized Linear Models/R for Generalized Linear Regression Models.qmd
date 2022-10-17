@@ -1,0 +1,904 @@
+---
+title: "R for Generalized Linear Regression Models"
+author: "Eric R. Schuler, Ph.D."
+date: "`r Sys.Date()`"
+format: gfm
+---
+
+# R for Generalized Linear Regression Models
+
+## Workshop Description
+
+There are times in which our dependent variable is not a continuous variable but rather binary, categorical, or count, which means we need to use generalized linear models for regression. This workshop will cover logistic/probit, multinomial, ordinal, and Poisson regressions. We will cover how to run the models and assess assumptions. This workshop assumes familiarity with R (if not, please see our On-Demand Workshop on Using R). Additional resources will be provided.
+
+## Learning Outcomes
+
+At the end of this workshop, attendees will be able to:
+
+-   Implement code to assess assumptions for generalized linear models
+
+-   Analyze binary, multinomial, ordinal, and count data using generalized linear models
+
+-   Interpret the results from generalized linear models
+
+**Please note:** Some of the code has been adapted from UCLA's Office of Advanced Research Computing (https://stats.oarc.ucla.edu/#).
+
+Install libraries and set-up session
+
+```{r}
+#Installation code
+knitr::opts_chunk$set(echo = TRUE)
+
+#install code
+list.of.packages <- c("tidyverse","reshape2","sandwich","msm",
+                      "MBESS","car", "sem", "performance","see",
+                  "patchwork","DescTools","nnet","MASS","plyr",
+                  "brant","Hmisc","janitor","psych","broom")
+#If you do not already have the package installed, the package is retained
+new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
+#Install packages that are not previously installed
+if(length(new.packages)) install.packages(new.packages,repos = "http://cran.us.r-project.org")
+
+# load libraries
+library(tidyverse)
+library(janitor)
+library(see)
+library(performance)
+library(psych)
+library(MASS)
+library(broom)
+
+# turn off scientific notations
+options(scipen = 999)
+```
+
+Set working directory
+
+```{r}
+setwd("C:/Users/eschuler/Desktop/R for Generalized Linear Regressions 2022/")
+```
+
+Dataset:
+
+The Holzinger and Swineford (1939), or HS here, is a dataset that consists of 301 participants who took 26 different tests to measure spatial, verbal, mental speed, memory, and mathematical ability. Participants were from two schools.
+
+Load in the formatted R dataset
+
+```{r}
+HS <- readRDS(file = "hs_glrm.rds")
+```
+
+# Logit/Probit Regression Models
+
+Logistic regression or logit regression is a type of probabilistic statistical classification model. It is used for predicting the outcome of a categorical dependent variable, based on one or more predictor variables. Frequently, logistic regression is used to refer specifically to the problem in which the dependent variable is binary - that is, the number of available categories is two. However, in problems with more than two categories, the model is referred to as multinomial logistic regression or, if the multiple categories are ordered, as ordered logistic regression. Both of these extensions are covered later.
+
+A probit model is a type of regression where the dependent variable can usually only take two values. The purpose of the model is to estimate the probability that an observation with particular characteristics will fall into a specific one of the categories. It is a popular specification for an ordinal or a binary response model. In this capacity, it treats the same set of problems as does a logistic regression and it employs similar techniques.
+
+The difference between the probit and the logit models lies in the assumptions they make about the distribution of the prediction errors. The former assumes a normal distribution, while the latter assumes a logistic probability distribution. Also, the logit and probit models produce almost similar goodness-of-fit measures but their parameter estimates differ.
+
+![PDF of standard normal distributions compared to standard logistic distributions](pdf%20picture.png){fig-alt="PDF of standard normal distributions compared to standard logistic distributions" fig-align="center" width="378"}
+
+Which one to choose? There is no right or wrong answer per se. Results tend to be very similar and the preference for one over the other tends to vary by discipline. It can be misleading to compare coefficients across models because the variance of the underlying latent (prediction) variable is not identified and can differ across models.
+
+How are discrete choice models different from a linear regression
+
+Probit/Logit regression is very similar to linear regression, however linear regression uses a continuous variable as the dependent variable in the model. In logistic/probit regression, the dependent variable is binary (or categorical). For example, if you are interested in looking at how race/ethnicity, education, and sex predict respondents' answers to a yes/no survey question, logistic/probit regression would be a great method to use. Keep in mind that while the dependent variable is always binary (categorical), the independent, or predictor, variables can be either continuous or discrete.
+
+![Comparing the linear regression line with a logistic regression sigmoid](difference.png){fig-alt="Comparing the linear regression line with a logistic regression sigmoid" fig-align="center" width="583"}
+
+[Before we continue, please NEVER EVER EVER DICHOTOMIZE A CONTINUOUS VARIABLE!! There is honestly never a good reason for it, seriously, I mean never!]{.underline}
+
+[![Credit: \@ChelseaParlett](20221006_123520.jpg){fig-alt="A skeleton on a bench with the caption \"waiting for people to stop unnecessarily dichotomizing their variables\"" fig-align="center"}](https://twitter.com/ChelseaParlett/status/1578028805461090304)
+
+First we will check the counts of the variables of interest
+
+Descriptive statistics for our continuous variable
+
+```{r}
+describe(HS[,"t4_lozenges"])
+```
+
+Frequency table for school
+
+```{r}
+tabyl(HS$school)
+```
+
+The goal of logit and probit regressions is different from OLS because the dependent variable is not continuous. In discrete choice models, we are predicting the likelihood that Y is equal to 1 (rather than 0), given certain values of X. That is, if X and Y have a positive linear relationship, the probability that a person will have a score of Y=1 will increase as values of X increase. So, instead of predicting the scores of the dependent variable as we do with OLS regression, we are instead predicting probabilities that an event will occur.
+
+Logit syntax:
+
+```{r}
+log_fit <- glm(visual_binary ~ t4_lozenges + school,
+                   family = "binomial", data = HS)
+```
+
+Probit syntax:
+
+```{r}
+probit_fit <- glm(visual_binary ~ t4_lozenges + school,
+                  family = binomial(link = "probit"),
+                  data = HS)
+```
+
+Model Fit
+
+Instead of using R-square as the statistic for overall model fit in logit/probit regression, we use a Chi-square test to get the deviation. Chi-square is a test that measures the fit of the observed values to the expected values. The bigger the difference of the observed from the expected values, the poorer the fit of the model. Therefore we want a small deviance.
+
+Assess model fit
+
+Logit Model Summary
+
+```{r}
+summary(log_fit)
+```
+
+Obtain pseudo-R-squared
+
+```{r}
+DescTools::PseudoR2(log_fit, which = c("McFadden", "McFaddenAdj", "CoxSnell", "Nagelkerke"))
+```
+
+Another function for pseudo-R-squared
+
+```{r}
+r2(log_fit)
+```
+
+More detailed version
+
+```{r}
+model_performance(log_fit)
+```
+
+provide detailed adds
+
+```{r}
+log_results_diag <- augment(log_fit)
+log_results_diag
+```
+
+Logistic Regression Model Checks
+
+Quick visual
+
+```{r}
+par(mfrow = c(2,2))
+plot(log_fit)
+par(mfrow = c(1,1))
+```
+
+```{r}
+check_model(log_fit)
+```
+
+compare our model with an empty model
+
+1.  Calculate difference in deviance
+
+```{r}
+with(log_fit, null.deviance-deviance)
+```
+
+2.  Calculate degrees of freedom for the difference
+
+```{r}
+with(log_fit, df.null - df.residual)
+```
+
+3.  obtian the p-value
+
+```{r}
+with(log_fit,pchisq(null.deviance-deviance, df.null - df.residual, lower.tail = FALSE))
+```
+
+4.  Loglikelihood ratio test
+
+```{r}
+logLik(log_fit)
+```
+
+Probit Model Summary
+
+```{r}
+summary(probit_fit)
+```
+
+Probit Regression Model Checks
+
+Obtain pseudo-R-squared
+
+```{r}
+DescTools::PseudoR2(probit_fit, which = c("McFadden", "McFaddenAdj", "CoxSnell", "Nagelkerke"))
+```
+
+Additional function for pseud-R-squared
+
+```{r}
+r2(probit_fit)
+```
+
+More detailed version
+
+```{r}
+model_performance(probit_fit)
+```
+
+provide detailed adds
+
+```{r}
+probit_results_diag <- augment(probit_fit)
+probit_results_diag
+```
+
+Probit Regression Model Checks
+
+Quick visual
+
+```{r}
+par(mfrow = c(2,2))
+plot(probit_fit)
+par(mfrow = c(1,1))
+```
+
+```{r}
+check_model(probit_fit)
+```
+
+compare our model with an empty model
+
+1.  Calculate difference in deviance
+
+```{r}
+with(probit_fit, null.deviance-deviance)
+```
+
+2.  Calculate degrees of freedom for the difference
+
+```{r}
+with(probit_fit, df.null - df.residual)
+```
+
+3.  obtian the p-value
+
+```{r}
+with(probit_fit,pchisq(null.deviance-deviance, df.null - df.residual, lower.tail = FALSE))
+```
+
+4.  Loglikelihood ratio test
+
+```{r}
+logLik(probit_fit)
+```
+
+Interpreting Coefficients
+
+The coefficients in a logistic regression equation are somewhat difficult to interpret. The saying in OLS, that b (beta) represents "the change in Y with one unit change in X" is no longer applicable. Instead, we have to translate the coefficient using the exponent function. When we do that, we have a number that is pretty useful, called the odds ratio. The odds ratio is equal to exp(B) or eb. For example, if your results indicate the regression slope is 0.08, the odds ratio is 1.08 (because exp(.08)=1.08). This means that the probability that Y is equal to 1 is about one times as likely as the value of X is increased by one unit. If the odds ratios was say 2.06, then it would be about twice as likely.
+
+Logit Log-odds
+
+```{r}
+glance(log_fit)
+```
+
+Logit Log-odds
+
+```{r}
+coef(log_fit)
+```
+*Interpretations*
+For every one unit increase in lozenges, the log odds of "yes" for visual increases by .089, holding all other variables constant. Being in Pasteur, compare to Grant-White school had a decrease in the log odds (-.30) of being "yes" for visual, holding all other variables constant.
+
+
+95% Confidence intervals
+
+```{r}
+confint(log_fit)
+```
+
+Confidence intervals using standard errors
+
+```{r}
+confint.default(log_fit)
+```
+
+Odds Ratios
+
+```{r}
+exp(coef(log_fit))
+```
+
+*Interpretations*
+For each unit increase in lozenges, the odds of being "yes" for visual was 1.09 times more likely, holding all other variables constant. We can convert this to a percentage by taking 1.09 - 1.00 so 9% higher odds of being "yes" for every increase in lozenges.  However, notice that Pasteur was below 1, so they are less likely compared to Grant-White. A better approach to interpret this is to do 1/.74 which is 1.35 or 35% (after removing the 1) of higher odds of being "no" compared to "yes" for visual (since we took the inverse, or 1/Odds ratio, we need to flip the outcome).
+
+Odds Ratios and 95% CI
+
+```{r}
+exp(cbind(OR = coef(log_fit), confint(log_fit)))
+```
+
+Predicted Probabilities for logistic
+
+1.  create data frame
+
+```{r}
+newlogdata <- with(HS, data.frame(t4_lozenges= rep(seq(from = 1, 
+                                                       to = 40, 
+                                                       length.out = 100), 2),
+                                  school = factor(rep(c("Grant-White",
+                                                        "Pasteur"), 
+                                                      each =100))))
+```
+
+look at the data
+
+```{r}
+glimpse(newlogdata)
+```
+
+Bind the data with the predictions from the model
+
+```{r}
+newlogdata <- cbind(newlogdata, predict(log_fit, newdata = newlogdata, type = "link",
+                                    se = TRUE))
+```
+
+calculate the predicted probabilities and upper/lower bounds
+
+```{r}
+newlogdata <- within(newlogdata, {
+  PredictPROB <- plogis(fit)
+  LL <- plogis(fit - (1.96 * se.fit))
+  UL <- plogis(fit + (1.96 * se.fit))
+})
+
+head(newlogdata)
+```
+
+Create a visual
+
+```{r}
+p1 <- ggplot(newlogdata, aes(x = t4_lozenges, y = PredictPROB))+geom_ribbon(aes(
+  ymin = LL, ymax = UL, fill = school), alpha = .2) + geom_line(
+    aes(colour = school), size = 1)
+
+p1
+```
+
+Interpretation of the coefficients in a probit regression is different from the interpretation of the logit regression. The increase in probability attributed to a one-unit increase in a given predictor is dependent both on the values of the other predictors and the starting value of the given predictors. However, there are limited ways in which we can interpret the individual regression coefficients. A positive coefficient means that an increase in the predictor leads to an increase in the predicted probability. A negative coefficient means that an increase in the predictor leads to a decrease in the predicted probability.
+
+```{r}
+coef(probit_fit)
+```
+
+```{r}
+confint(probit_fit)
+```
+
+Predicted Probabilities for Probit
+
+1.  create data frame
+
+```{r}
+newprobdata <- with(HS, data.frame(t4_lozenges= rep(seq(from = 1, 
+                                                       to = 40, 
+                                                       length.out = 100), 2),
+                                  school = factor(rep(c("Grant-White",
+                                                        "Pasteur"), 
+                                                      each =100))))
+```
+
+Look at the data
+
+```{r}
+glimpse(newprobdata)
+```
+
+Bind the data and the predictions
+
+```{r}
+newprobdata <- cbind(newprobdata, predict(probit_fit, newdata = newprobdata, type = "link",
+                                    se = TRUE))
+```
+
+calculate the predicted probabilities and upper/lower bounds
+
+```{r}
+newprobdata <- within(newprobdata, {
+  PredictPROB <- plogis(fit)
+  LL <- plogis(fit - (1.96 * se.fit))
+  UL <- plogis(fit + (1.96 * se.fit))
+})
+
+head(newprobdata)
+```
+
+Create a visual of the predicted probabilities
+
+```{r}
+p2 <- ggplot(newprobdata, aes(x = t4_lozenges, y = PredictPROB))+geom_ribbon(aes(
+  ymin = LL, ymax = UL, fill = school), alpha = .2) + geom_line(
+    aes(colour = school), size = 1)
+
+p2
+```
+
+If we wanted to see the predicted probability from the logistic with the probit we could use patchwork.
+
+```{r}
+library(patchwork)
+p1+p2
+```
+
+# Multinomial Logistic Regression Models
+
+Multinomial logistic regression is used when the outcome variable is more than two categories and there is not an ordered structure to the outcome (i.e., not like the Olympic medals of bronze, silver, gold). This alloes for the log odds of the outcomes to be modeled as a linear combination of the independent variables. It is important to note what the reference group for the outcome is though and that decision should be made based on existing theory.  
+
+Let's look at a table
+
+```{r}
+with(HS, table(visual_mult, school))
+```
+
+Look at the means and sd for each of the visual category groups
+
+```{r}
+with(HS, do.call(rbind, tapply(t4_lozenges, visual_mult, function(x) c(M = mean(x), SD = sd(x)))))
+```
+
+Run the multinomial model
+
+```{r}
+library(nnet)
+multinom_results <- multinom(visual_mult ~ t4_lozenges + school, data = HS)
+```
+
+look at the output, the coefficients are log-odds
+
+```{r}
+summary(multinom_results)
+```
+
+*Interpretation*
+For each unit increase in lozenge scores was related to a increase in log-odds (.04) of being in B versus A, holding all other variables constant. For each unit increase in lozenge scores was related to a increase in log-odds (.13) of being in C versus A, holding all other variables constant. Being in the Pasteur school (compared to Grant-White) had a decrease in the log-odds of -.25 of being in B versus A holding all other variables constant. Being in the Pasteur school (compared to Grant-White) had a decrease in the log-odds of -.67 of being in C versus A holding all other variables constant.
+
+
+We can look at the overall fit
+
+```{r}
+glance(multinom_results)
+```
+
+test coefficients
+
+```{r}
+z <- summary(multinom_results)$coefficients/summary(multinom_results)$standard.errors
+z
+```
+
+calculate the 2-tailed z test
+
+```{r}
+p <- (1 - pnorm(abs(z), 0, 1)) * 2
+p
+```
+
+Extract the coefficients from the model and exponentiate to create risk ratios
+
+```{R}
+exp(coef(multinom_results))
+```
+
+*Interpretation*
+For each unit increase in lozenge scores was related to a increase in the relative risk ratio (1.04) of being in B versus A, holding all other variables constant. The relative risk ratio for one unit increase in lozenge scores was 1.13 for being in C versus A, holding all other variables constant. The relative risk ratio of switching from Pasteur school to Grant-White is .77 for being in B versus A, holding all other variables constant. The relative risk ratio of switching from Pasteur school to Grant-White is .51 for being in c versus A, holding all other variables constant.
+
+
+Create predicted probabilities
+
+```{r}
+head(pp <- fitted(multinom_results))
+```
+
+create a predicted dataframe, holding lozenges at the mean
+
+```{r}
+predict_viscat_school <- data.frame(school = c("Grant-White","Pasteur"),
+                   t4_lozenges = mean(HS$t4_lozenges))
+```
+
+predicted probabilities by group by school (1 = Grant-White, 2 = Pasteur)
+
+```{r}
+predict(multinom_results, newdata = predict_viscat_school, "probs")
+```
+
+look at the averaged predicted probabilities for different values of lozenges
+
+create a new dataset
+
+```{r}
+newmultdata <- data.frame(
+  school = factor(rep(c("Grant-White","Pasteur"), 200)),
+  t4_lozenges = rep(seq(from = 1, to = 6, length.out = 100), 2))
+```
+
+combine the datasets with the predicted probabilities
+
+```{r}
+pp.multdata <- cbind(newmultdata, predict(multinom_results, 
+                                          newmultdata, 
+                                          type = "probs",
+                                          se = TRUE))
+```
+
+View the first few rows
+
+```{r}
+head(pp.multdata)
+```
+
+Calculate the mean probabilities within each level of school
+
+```{r}
+by(pp.multdata[,3:5], pp.multdata$school, colMeans)
+```
+
+Reshape the data to be able to plot all the predicted probabilities
+
+```{r}
+library(reshape2)
+
+l_newmultdata <- melt(pp.multdata, id.vars = c("school","t4_lozenges"),
+                     value.name = "Probability")
+head(l_newmultdata)
+```
+
+Plot the predicted probabilities across lozenge scores for each school
+
+Create a plot
+
+```{r}
+ggplot(l_newmultdata, aes(x = t4_lozenges, y = Probability, colour = school))+
+  geom_line()+facet_grid(variable ~., scales = "free")
+```
+
+We need to put it all on the same metric though
+
+```{r}
+ggplot(l_newmultdata, aes(x = t4_lozenges, y = Probability, colour = school))+
+  geom_line()+facet_grid(variable ~.)
+```
+
+Change the reference group
+
+```{r}
+HS$visual_mult2 <- relevel(HS$visual_mult, ref = "C")
+```
+
+We can rerun the model using a different reference group
+
+```{r}
+multinom_results2 <- multinom(HS$visual_mult2~ t4_lozenges + school, data = HS)
+summary(multinom_results2)
+```
+
+# Ordinal Regression Models
+
+Ordinal logistic regression is when the outcome is ordinal in nature and not interval. While OLS could be used, the assumptions will be violated.
+
+First let's check the frequencies of our ordinal outcome
+
+```{r}
+tabyl(HS$visual_ord)
+```
+
+Three way cross tabs (xtabs) and flatten the table
+
+```{r}
+ftable(xtabs(~ school + visual_ord, data = HS))
+```
+
+check categorical counts
+```{r}
+table(HS$visual_ord, HS$school)
+```
+
+with lozenges to get a visual
+```{r}
+ggplot(HS, aes(x = visual_ord, y = t4_lozenges)) + geom_boxplot(size = .75) + geom_jitter(alpha = .5) + facet_grid(. ~ school, margins = TRUE) + theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1))
+```
+
+Run an ordinal logistic regression
+```{r}
+ord_results <- polr(visual_ord ~ t4_lozenges + school, 
+                     data = HS, 
+                     Hess=TRUE)
+```
+
+view a summary of the model
+Note: coefficients are scaled in terms of logs (log odds) 
+```{r}
+summary(ord_results)
+```
+
+```{r}
+glance(ord_results)
+```
+store table
+```{r}
+(ctable <- coef(summary(ord_results)))
+```
+
+Here we could say that for each unit increase in lozenge score we expect a .095 increase in the expected visual perception categorized score, holding all other variables constant. However it is much easier to interpret using odds ratios.
+
+calculate and store p values
+```{r}
+p <- pnorm(abs(ctable[, "t value"]), lower.tail = FALSE)* 2
+```
+
+combined table
+```{r}
+(ctable <- cbind(ctable, "p value" = p))
+```
+Confidence intervals 
+```{r}
+(ci <- confint(ord_results))
+```
+
+report the 95% CI 
+```{r}
+confint.default(ord_results)
+```
+
+Coefficients converted to proportional odds ratios 
+```{r}
+exp(coef(ord_results))
+```
+
+*Interpretation*
+For students in Pasteur school the odds of being higher in visual perception (high or medium versus low) was 37.2% lower (i.e., 1-.628) than Grant-White students, holding all other variables constant. For each unit increase in lozenge score, the odds of being higher in visual perception (high or medium versus low) is multiplied 1.10 times, holding all other variables constant.
+
+Odds ratios and 95% CI 
+```{r}
+exp(cbind(OR = coef(ord_results), ci))
+```
+
+Assess the proportional odds assumption/parallel regression assumption. If this is not met the regressions are not parallel/ there are different coefficients in the model for each pair of the outcomes. We would then need to run each combination separately with logistic regressions 
+```{r}
+sf <- function(y) { c('Y>=1' = qlogis(mean(y >= 1)), 'Y>=2' = qlogis(mean(y >= 2)), 'Y>=3' = qlogis(mean(y >= 3))) }
+```
+
+Graph to test proportional odds assumption/parallel regression assumption 
+```{r}
+library(Hmisc) 
+s <- with(HS, summary(as.numeric(visual_ord) ~ t4_lozenges + school, fun=sf)) 
+s
+```
+
+Run a series of binary logistic regressions 
+```{r}
+glm(I(as.numeric(visual_ord)>= 2) ~ school, family = "binomial", data =HS) 
+```
+
+```{r}
+glm(I(as.numeric(visual_ord)>= 3) ~ school, family = "binomial", data =HS)
+```
+
+```{r}
+s[,4] <- s[,4]-s[,3] 
+s[,3] <- s[,3]-s[,3] 
+```
+
+print out the visual for the proportional odds assumption/parallel regression assumption 
+```{r}
+s
+```
+
+```{r}
+plot(s, which = 1:3, pch = 1:3, xlab = "logit", main = ' ', xlim = range(s[,3:4]))
+```
+
+we can also calculate the Brant test for the parallel regression assumption 
+```{r}
+library(brant) 
+brant(ord_results)
+```
+
+Since we didn't violate the assumption we can go ahead and interpret the results.
+
+Predicted probabilities 
+
+create a new dataset 
+```{r}
+neworddata <- data.frame(school = factor(rep(c("Grant-White","Pasteur"), 200)), 
+                         t4_lozenges = rep(seq(from = 1, to = 40, length.out = 100), 2)) 
+
+```
+
+
+combine the datasets with the predicted probabilities 
+```{r}
+neworddata <- cbind(neworddata, predict(ord_results, neworddata, type = "probs"))
+```
+
+view the first few rows 
+```{r}
+head(neworddata)
+```
+reshape the data to be able to plot all the predicted probabilities 
+```{r}
+l_neworddata <- melt(neworddata, id.vars = c("school",
+                                             "t4_lozenges"), 
+                     variable.name = "Level", 
+                     value.name = "Probability") 
+
+head(l_neworddata)
+```
+create a plot for the predicted probabilities
+```{r}
+ggplot(l_neworddata, aes(x = t4_lozenges, y = Probability, colour = Level))+ geom_line()+facet_grid(.~school)
+```
+
+# Poisson Regression Models
+
+A Poisson regression is used for modeling count data. There are several extensions of Poisson that allow for excessive 0s in the data as well as overdisperion of the count data.
+
+```{r}
+library(sandwich)
+library(msm)
+```
+
+Check the counts
+
+```{r}
+plyr::count(HS$sentence_completion_count)
+```
+
+Visual by School
+
+```{r}
+with(HS, tapply(sentence_completion_count, school, function(x) {
+  sprintf("M (SD) = %1.2f (%1.2f)", mean(x), sd(x))
+}))
+```
+
+```{r}
+ggplot(HS, aes(sentence_completion_count, fill = school)) +
+  geom_histogram(binwidth=.5, position="dodge")
+```
+
+run a poisson regression
+
+```{r}
+pois_results <- glm(sentence_completion_count ~ t4_lozenges + school,
+                    family="poisson",
+                    data=HS)
+```
+
+We can then look at the results, note that coefficients are expected log counts
+
+```{r}
+summary(pois_results)
+```
+
+*Coefficient Interpretation*
+A one unit increase in lozenge scores would result in a expected log count of .001. The expected difference in log count between Pasteur and the reference school of Grant-White is .053, holding all other variables constant.
+
+Check poisson fit more concisely
+
+```{r}
+glance(pois_results)
+```
+
+Check for overdispersion
+
+**Note:** If overdispersion is detected will need to use a negative binomial regression. If there are excessive 0s, then we would want to use a zero-inflated regression model.
+
+```{r}
+check_overdispersion(pois_results)
+```
+
+using robust standard errors
+
+```{r}
+cov.pois <- vcovHC(pois_results, type="HC0")
+std.err <- sqrt(diag(cov.pois))
+r.est <- cbind(Estimate= coef(pois_results), "Robust SE" = std.err,
+               "Pr(>|z|)" = 2 * pnorm(abs(coef(pois_results)/std.err), lower.tail=FALSE),
+               LL = coef(pois_results) - 1.96 * std.err,
+               UL = coef(pois_results) + 1.96 * std.err)
+```
+
+print the coefficients with robust SE and 95% CI
+
+```{r}
+r.est
+```
+
+Goodness of fit test, if stat sig, the model does not fit well
+
+```{r}
+with(pois_results, cbind(res.deviance = deviance, df = df.residual,
+               p = pchisq(deviance, df.residual, lower.tail=FALSE)))
+```
+
+Calculate incident rate ratios, standard errors and 95% CI
+
+```{r}
+incident_model <- deltamethod(list(~ exp(x1), ~ exp(x2), ~exp(x3)), 
+                              coef(pois_results), cov.pois)
+incident_model
+```
+The incident rate for Pasteur school is .07 times the incident rate of Grant-White school, holding all other variables constant.
+
+Exponentiate old estimates dropping the p values
+
+```{r}
+rexp.est <- exp(r.est[, -3])
+```
+
+Replace SEs with estimates for exponentiated coefficients
+
+```{r}
+rexp.est[, "Robust SE"] <- incident_model 
+```
+
+Look at the results
+
+```{r}
+rexp.est
+```
+
+Expected Marginal Mean (holding lozenge scores constant)
+
+Create a marginal mean dataframe
+
+```{r}
+pois_mar <- data.frame(t4_lozenges = mean(HS$t4_lozenges), 
+                       school = factor(1:2,levels = 1:2, 
+                                       labels = levels(HS$school)))
+```
+
+print out the matrix
+
+```{r}
+pois_mar
+```
+
+predicted
+
+```{r}
+predict(pois_results, pois_mar, type = "response", se.fit = TRUE)
+```
+
+Store predicted scores
+
+```{r}
+HS$pois_pred <- predict(pois_results, type = "response")
+```
+
+We can then graph th predicted number of sentence completion scores
+
+```{r}
+ggplot(HS, aes(x = t4_lozenges, y = pois_pred, colour = school))+
+  geom_point(aes(y = sentence_completion_count), 
+             alpha = .4, 
+             position = position_jitter(h=.3))+
+  geom_line(size = 1) +
+  labs(x = "Lozenge Scores", 
+       y = "Expected number of Sentence Completions")
+```
+
+**Resources**
+
+-   https://stats.oarc.ucla.edu/r/dae/probit-regression/
+
+-   https://stats.oarc.ucla.edu/r/dae/ordinal-logistic-regression/
+
+-   http://www.sthda.com/english/wiki/one-way-anova-test-in-r
+
+-   http://www.sthda.com/english/wiki/two-way-anova-test-in-r
+
+-   https://www.datanovia.com/en/lessons/t-test-in-r/#effect-size-1
+
+-   https://stats.idre.ucla.edu/r/dae/poisson-regression/
