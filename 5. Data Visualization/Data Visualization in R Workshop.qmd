@@ -1,41 +1,56 @@
 ---
-title: "Module 5 Data Visualization"
+title: "Data Visualization in R"
 author: "Eric R. Schuler, Ph.D."
 date: "`r Sys.Date()`"
 format: gfm
 ---
 
-In this module we will cover:
-  - How to use visualizations as part of data screening
-      - Box plots
-      - Outlier detection (univariate) 
-      - Standard scatter plots
-      - Create a 3D scatter plot for three variables
-  - Creating plots
-      - Bar charts
-      - Histograms
-      - Line graphs
-      - Adding axis labels to plots
-      - How to add ticks to a plot
-      - Changing color and size of points
-      - How to add error bars
-      - Adding a legend and re-positioning
-  - How to stack figures
-  - Heat maps
-      - Correlations
-  - Plotting time series data
-  - How to save figures and export out of R
+**Description:** This workshop will provide a primer in how to create different types of data visualizations in R/R-Studio. Some of the figures we will cover are: box plots, bar charts, line graphs, and more. We will cover how to add and re-position legends as well as some methods of exporting formatted results tables. This workshop assumes familiarity with R (if not, please see our On-Demand Workshop on Using R). Additional resources will be provided.
 
-Examples were adapted from:
-http://r-statistics.co/Complete-Ggplot2-Tutorial-Part1-With-R-Code.html
+**Learning Outcomes:** At the end of this workshop, attendees will be able to:
 
+-   Recognize different aesthetic commands in ggplot2
+-   Create different data visualizations depending on the nature of the data
 
-```{r setup, include=FALSE}
+In this workshop we will cover:
+
+-   Box plots
+
+-   Standard scatter plots
+
+-   Bar charts
+
+-   Histograms
+
+-   Line graphs
+
+-   Adding axis labels to plots
+
+-   How to add ticks to a plot
+
+-   Changing color and size of points
+
+-   How to add error bars
+
+-   Adding a legend and re-positioning
+
+-   How to stack figures in different ways
+
+-   Heat maps for Correlations
+
+-   Plotting time series data
+
+-   How to save figures and export out of R
+
+Some examples were adapted from: http://r-statistics.co/Complete-Ggplot2-Tutorial-Part1-With-R-Code.html
+
+```{r setup, include=TRUE}
 knitr::opts_chunk$set(echo = TRUE)
 
 #install code
 list.of.packages <- c("tidyverse","ggplot2","reshape","lubridate",
-                      "MBESS","car", "sem")
+                      "MBESS","car", "sem", "performance","see",
+                      "psych","patchwork","dplyr","grid")
 #If you do not already have the package installed, the package is retained
 new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
 #Install packages that are not previously installed
@@ -44,32 +59,28 @@ if(length(new.packages)) install.packages(new.packages,repos = "http://cran.us.r
 options(scipen = 999)
 ```
 
-
 Load the packages
+
 ```{r}
 library(psych)
 library(reshape)
 library(lubridate)
 library(MBESS)
 library(ggplot2)
+library(tidyverse)
 ```
 
 Most of the data for today will come from example data from the R packages
 
 # Working Directory ----
-We also need to tell R where to look for and save files. 
-You can also do this from the "Session" Menu 
-Go to -> "Session" -> "Set Working Directory" -> "Choose Directory" -> Select the folder that you want
-When you do this, copy and past the line of code that is run from the consol to your scipt.
+
+We also need to tell R where to look for and save files. You can also do this from the "Session" Menu Go to -\> "Session" -\> "Set Working Directory" -\> "Choose Directory" -\> Select the folder that you want When you do this, copy and past the line of code that is run from the console to your script.
 
 ```{r}
-setwd("C:/Users/eschuler/Desktop/r short course/")
+setwd("C:/Users/eschuler/Desktop/R for Data Viz 2022")
 ```
 
-
-How to visualize data as part of the data screening Process 
-     (or how I stopped worrying and trusted my gut)         
-
+How to visualize data as part of the data screening Process (or how I stopped worrying and trusted my gut)
 
 # Boxplots for Univariate Outlier Detection
 
@@ -79,6 +90,7 @@ data(HS.data)
 ```
 
 simple boxplot of arithmetic scores
+
 ```{r}
 boxplot(HS.data$arithmet)
 ```
@@ -86,25 +98,27 @@ boxplot(HS.data$arithmet)
 Let's say we wanted to see the boxplots of arithmetic scores by age
 
 convert agey to a factor
+
 ```{r}
 HS.data$agey <-factor(HS.data$agey)
 ```
 
 Create boxplots for arithmetic scores by age groups
+
 ```{r}
 boxplots1 <- ggplot(HS.data, aes(x = agey, y = arithmet))+
               geom_boxplot()
 boxplots1
 ```
 
-Let's do it a different way so outliers are labeled
-  from: https://stackoverflow.com/questions/33524669/labeling-outliers-of-boxplots-in-r/33525389 
+Let's do it a different way so outliers are labeled from: https://stackoverflow.com/questions/33524669/labeling-outliers-of-boxplots-in-r/33525389
 
 ```{r}
 library(dplyr)
 ```
 
 This function will note any value that is past the whiskers of the boxplot
+
 ```{r}
 is_outlier <- function(x) {
   return(x < quantile(x, 0.25) - 1.5 * IQR(x) | x > quantile(x, 0.75) + 1.5 * IQR(x))
@@ -112,6 +126,7 @@ is_outlier <- function(x) {
 ```
 
 We are going to use a bit of piping for the next code
+
 ```{r}
 boxplots1 <- HS.data %>%
   group_by(agey) %>%
@@ -124,6 +139,7 @@ boxplots1
 ```
 
 We can overlay by adding additional layers
+
 ```{r}
 boxplots1 <- boxplots1 + scale_y_continuous(name = "Score on Arithmetic Test", breaks = seq(0, 40, 2),
                                             limits = c(0, 40))
@@ -131,30 +147,35 @@ boxplots1
 ```
 
 Add a title for the x-axis
+
 ```{r}
-boxplots1 <- boxplots1 + scale_x_discrete(name = "Age Groups of Students")
+boxplots1 <- boxplots1 + scale_x_discrete(name = "Age Groups of Students (in Years)")
 boxplots1
 ```
 
-Add a title 
+Add a title
+
 ```{r}
 boxplots1 <- boxplots1 + ggtitle("Boxplots of Arithmetic Scores by Age")
 boxplots1
 ```
 
 Change the color for each boxplot
+
 ```{r}
 boxplots1 <- boxplots1 + aes(x = agey, y = arithmet, fill = agey)
 boxplots1
 ```
 
 Change the background
+
 ```{r}
 boxplots1 <- boxplots1 + theme_bw()
 boxplots1
 ```
 
 Remove the background grid
+
 ```{r}
 boxplots1 <- boxplots1 +  theme(axis.line = element_line(colour = "black"),
                                 panel.grid.major = element_blank(),
@@ -165,18 +186,54 @@ boxplots1
 ```
 
 Let's add a reference line for the overall mean of student Arithmetic Scores
+
 ```{r}
-boxplots2 <- boxplots1 + geom_hline(yintercept = mean(HS.data$arithmet), color = "dark red")
+boxplots2 <- boxplots1 + geom_hline(yintercept = mean(HS.data$arithmet), color = "black")
 boxplots2
 ```
 
+Edit legend
+
+```{r}
+boxplots2 <- boxplots2 + scale_fill_discrete(name="Age")
+boxplots2
+```
+
+Let's save a copy of this image
+
+As pdf
+
+```{r}
+pdf("arith by age.pdf")
+boxplots2
+dev.off()
+```
+
+As jpeg
+
+```{r}
+jpeg("arith by age.jpg", width = 1300, height = 500)
+boxplots2
+dev.off()
+```
+
+As png
+
+```{r}
+png("arith by age.png", width = 1300, height = 500)
+boxplots2
+dev.off()
+```
+
 violin plots - combines a boxplot and a distribution visual
+
 ```{r}
 violin1 <- ggplot(HS.data, aes(x = agey, y = arithmet))+geom_violin()
 violin1
 ```
 
-Add in some color into the visual
+Add in some color into the visual NOTE: the X and Y axis will be flipped since we have the `+coord_flip()` function included, that will impact how we rename the X and Y axis titles.
+
 ```{r}
 violin1 <- violin1+geom_violin(alpha=0.5, color="gray")+geom_jitter(alpha=0.5, aes(color=agey),
       position = position_jitter(width = 0.1))+coord_flip()
@@ -184,34 +241,45 @@ violin1
 ```
 
 Rename variable in legend
+
 ```{r}
 violin1 <- violin1 + scale_color_discrete(name = "Age")
 violin1
 ```
 
-Rename y-axis title
+Rename x-axis title (our Y axis in this plot)
+
 ```{r}
 violin1 <- violin1 + scale_x_discrete(name = "Age Groups of Students")
 violin1
 ```
 
+Rename y-axis title (our X axis in this plot)
 
-# Creating Scatterplots 
+```{r}
+violin1 <- violin1 + scale_y_discrete(name = "Arithmetic Scores")
+violin1
+```
+
+# Creating Scatterplots
 
 Basic scatterplot
+
 ```{r}
 scatter1 <- ggplot(HS.data, aes(cubes, visual))
-scatter1 <- scatter1 + geom_point(size = 2)
+scatter1 <- scatter1 + geom_point(size = 1)
 scatter1
 ```
 
-Change the background
+Change the background theme to black and white
+
 ```{r}
 scatter1 <- scatter1 + theme_bw()
 scatter1
 ```
 
 Remove the background grid
+
 ```{r}
 scatter1 <- scatter1 +  theme(axis.line = element_line(colour = "black"),
                                 panel.grid.major = element_blank(),
@@ -222,32 +290,36 @@ scatter1
 ```
 
 Add a title for the y-axis
+
 ```{r}
 scatter1 <- scatter1 + scale_y_continuous(name = "Score on the Visual", breaks = seq(0, 50, 5),
                                             limits = c(0, 50))
 scatter1
 ```
 
-Add a title for the x-axis and place on the same metric range
+Add a title for the x-axis and place on the same metric range (0-50)
+
 ```{r}
-scatter1 <-scatter1 + scale_x_continuous(name = "Score on the Cubes", breaks = seq(0, 50, 5),
-                                          limits = c(0, 50))
+scatter1 <-scatter1 + scale_x_continuous(name = "Score on the Cubes", breaks = seq(0, 50, 5),limits = c(0, 50))
 scatter1
 ```
 
 Overlay by school type
+
 ```{r}
 scatter1 <- scatter1 + geom_point(aes(colour = factor(school)))
 scatter1
 ```
 
-Add a title 
+Add a title
+
 ```{r}
 scatter1 <- scatter1 + ggtitle("Scatterplot of Visual and Cube Scores")
 scatter1
 ```
 
 Edit the legend
+
 ```{r}
 scatter2 <- scatter1 + theme(legend.position = "bottom")
 scatter2
@@ -259,13 +331,8 @@ scatter1 <- scatter1 + scale_color_discrete(name = "School",
 scatter1
 ```
 
+Standard Scatterplot with a regression line super-imposed
 
-import the data
-```{r}
-data(HS.data)
-```
-
-Standard Scatterplots
 ```{r}
 plot(HS.data$visual, HS.data$cubes)
 abline(lm(HS.data$cubes ~ HS.data$visual, data = HS.data), col = "blue")
@@ -279,6 +346,7 @@ abline(lm(HS.data$cubes ~ HS.data$wordc, data = HS.data), col = "blue")
 # Creating bar charts, histograms
 
 Bar Charts
+
 ```{r}
 barchart1 <- ggplot(HS.data, aes(agey))
 barchart1 <- barchart1 + geom_bar()
@@ -286,42 +354,84 @@ barchart1
 ```
 
 Histograms
+
 ```{r}
 hist <- ggplot(HS.data, aes(visual))
-hist1 <- hist + geom_histogram(binwidth = 4)
+hist1 <- hist + geom_histogram(binwidth = 2)
 hist1
 ```
 
 change the colors
+
 ```{r}
-hist2 <- hist +geom_histogram(color = "red", fill = "white")
+hist2 <- hist +geom_histogram(color = "red", fill = "black")
 hist2
+```
+
+Let's put it all together
+
+Here we will use patchwork to combine multiple ggplots into the same figure
+
+```{r}
+library(patchwork)
+```
+
+We can create an overall figure with a couple figures built in
+
+```{r}
+boxplots2 | hist2
+```
+
+```{r}
+boxplots2 + hist2
+```
+
+```{r}
+(boxplots2 | hist2) / violin1
+```
+
+We can also combine a visual and descriptive statistics in a single figure
+
+```{r}
+tab <- describeBy(HS.data$arithmet, group = HS.data$agey, mat = T)
+tab <- as.data.frame(tab)
+rownames(tab) <- NULL
+boxplots2 + gridExtra::tableGrob(tab[,c(2,4,5,6)])
+```
+
+We can also create a figure that has more text on one side
+
+```{r}
+wrap_elements(grid::textGrob('Look at my great figure!!! \n This is a very cool trick \n especially if creating slides \n in R!')) + boxplots2
 ```
 
 Linegraphs for experiments
 
-Let's grab some archival data
+Let's grab some archival data that is built into R
+
 ```{r}
 tg <-ToothGrowth
+glimpse(tg)
 ```
 
-From: http://www.cookbook-r.com/Graphs/Plotting_means_and_error_bars_(ggplot2)/
+From: http://www.cookbook-r.com/Graphs/Plotting_means_and_error_bars\_(ggplot2)/
 
-Step 1 run the helper function to store summary information (between groups)
-  Gives count, mean, standard deviation, standard error of the mean, and confidence interval (default 95%).
+Step 1 run the helper function to store summary information (between groups) Gives count, mean, standard deviation, standard error of the mean, and confidence interval (default 95%).
 
-- data: a data frame.
-- measurevar: the name of a column that contains the variable to be summariezed
-- groupvars: a vector containing names of columns that contain grouping variables
-- na.rm: a boolean that indicates whether to ignore NA's
-- conf.interval: the percent range of the confidence interval (default is 95%)
+-   data: a data frame.
+-   measurevar: the name of a column that contains the variable to be summariezed
+-   groupvars: a vector containing names of columns that contain grouping variables
+-   na.rm: a boolean that indicates whether to ignore NA's
+-   conf.interval: the percent range of the confidence interval (default is 95%)
 
 First we need to detach dplyr for conflicts
+
 ```{r}
 detach(package:dplyr)
 ```
 
 create the helper function
+
 ```{r}
 summarySE <- function(data=NULL, measurevar, groupvars=NULL, na.rm=FALSE,
                       conf.interval=.95, .drop=TRUE) {
@@ -361,12 +471,14 @@ summarySE <- function(data=NULL, measurevar, groupvars=NULL, na.rm=FALSE,
 ```
 
 summarySE provides the standard deviation, standard error of the mean, and a (default 95%) confidence interval
+
 ```{r}
 tgc <- summarySE(tg, measurevar="len", groupvars=c("supp","dose"))
 tgc
 ```
 
 Standard error of the mean
+
 ```{r}
 ggplot(tgc, aes(x=dose, y=len, colour=supp)) + 
   geom_errorbar(aes(ymin=len-se, ymax=len+se), width=.1) +
@@ -374,10 +486,13 @@ ggplot(tgc, aes(x=dose, y=len, colour=supp)) +
   geom_point()
 ```
 
-The errorbars overlapped, so use position_dodge to move them horizontally
+The error bars overlapped, so use position_dodge to move them horizontally
+
 ```{r}
 pd <- position_dodge(0.1) # move them .05 to the left and right
 ```
+
+Now we can rerun and see it a bit more clearly
 
 ```{r}
 ggplot(tgc, aes(x=dose, y=len, colour=supp)) + 
@@ -386,7 +501,8 @@ ggplot(tgc, aes(x=dose, y=len, colour=supp)) +
   geom_point(position=pd)
 ```
 
-Use 95% confidence interval instead of SEM
+Use 95% confidence interval instead of SE Mean
+
 ```{r}
 ggplot(tgc, aes(x=dose, y=len, colour=supp)) + 
   geom_errorbar(aes(ymin=len-ci, ymax=len+ci), width=.1, position=pd) +
@@ -395,6 +511,7 @@ ggplot(tgc, aes(x=dose, y=len, colour=supp)) +
 ```
 
 Black error bars - notice the mapping of 'group=supp' -- without it, the error bars won't be dodged!
+
 ```{r}
 ggplot(tgc, aes(x=dose, y=len, colour=supp, group=supp)) + 
   geom_errorbar(aes(ymin=len-ci, ymax=len+ci), colour="black", width=.1, position=pd) +
@@ -422,11 +539,10 @@ exp <- ggplot(tgc, aes(x=dose, y=len, colour=supp, group=supp)) +
 exp
 ```
 
-
 # Color Schemes in ggplots2
 
-from: https://rstudio-pubs-static.s3.amazonaws.com/177286_826aed2f00794640b301aeb42533c6f1.html 
-Default colors
+from: https://rstudio-pubs-static.s3.amazonaws.com/177286_826aed2f00794640b301aeb42533c6f1.html Default colors
+
 ```{r}
 ggplot(diamonds, aes(carat, price)) + geom_point(aes(color = cut)) + 
   scale_color_brewer(type = 'div', palette = 4, direction = 1) + 
@@ -434,12 +550,12 @@ ggplot(diamonds, aes(carat, price)) + geom_point(aes(color = cut)) +
 ```
 
 Flipping the direction so red/orange stands out
+
 ```{r}
 ggplot(diamonds, aes(carat, price, color = cut)) + geom_point() + 
   scale_color_brewer(type = 'div', palette = 4, direction = -1) + 
   xlab('Carats') + ylab('Price') + ggtitle('Diamonds')
 ```
-
 
 ```{r}
 ggplot(diamonds, aes(carat, price, color = cut)) + geom_point() + 
@@ -449,24 +565,26 @@ ggplot(diamonds, aes(carat, price, color = cut)) + geom_point() +
 
 ```{r}
 ggplot(diamonds, aes(carat, price, color = cut)) + geom_point() + 
-  scale_color_brewer(type = 'div', palette = 'Set3', direction = 1) + 
+  scale_color_brewer(type = 'div', palette = 'Set5', direction = 1) + 
   xlab('Carats') + ylab('Price') + ggtitle('Diamonds')
 ```
-
 
 # Plots for Regression
 
 Load in the World Band data
+
 ```{r}
 cs<-read.csv("cs.csv", header=TRUE)
 ```
 
 Recode corruption
+
 ```{r}
 cs$corrup2 <- 10 - cs$corrup
 ```
 
 Run a simple regression and plot with line of best fit
+
 ```{r}
 plot(cs$corrup2, cs$gdppc, main = "Gross Domestic Product Per Capita by Corruption",
      ylab = "GDP Per Capita", xlab = "Corruption")
@@ -474,44 +592,56 @@ abline(lm(cs$gdppc~cs$corrup2), col = "red", lwd = 2, lty = 1)
 ```
 
 This will run a multiple regresson and store the results
+
 ```{r}
-model1 <- lm(cs$gdppc ~ cs$corrup2 + cs$oecd)
+model1 <- lm(gdppc ~ corrup2 + oecd, data = cs)
 summary(model1)
 ```
 
 Here are some commands to run regression diagnostics
+
 ```{r}
 par(mar=c(2,2,2,2), #number of lines of margin
     mfrow=c(2,2))   #two figures per row, two per column
 plot(model1)        #the summary has the diagnostics already stored
 ```
 
+I like this version personally
+
+```{r}
+performance::check_model(model1)
+```
+
 change it so they are stacked
+
 ```{r}
 par(mar=c(2,2,2,2), #number of lines of margin
-    mfrow=c(4,1))   #two figures per row, two per column
+    mfrow=c(4,1))   #1 figures per row, 4 per column
 plot(model1)        #the summary has the diagnostics already stored
 ```
 
 change it so they are in columns
+
 ```{r}
 par(mar=c(2,2,2,2), #number of lines of margin
-    mfrow=c(1,4))   #two figures per row, two per column
+    mfrow=c(1,4))   #4 figures per row, 1 per column
 plot(model1)        #the summary has the diagnostics already stored
 ```
 
-example of regression visuals http://www.sthda.com/english/wiki/print.php?id=188 
+example of regression visuals http://www.sthda.com/english/wiki/print.php?id=188
 
 ```{r}
 data("mtcars")
 ```
 
 change cylinder as factor
+
 ```{r}
 mtcars$cyl <- as.factor(mtcars$cyl)
 ```
 
 Add the regression line
+
 ```{r}
 ggplot(mtcars, aes(x=wt, y=mpg)) + 
   geom_point()+
@@ -519,6 +649,7 @@ ggplot(mtcars, aes(x=wt, y=mpg)) +
 ```
 
 Remove the confidence interval
+
 ```{r}
 ggplot(mtcars, aes(x=wt, y=mpg)) + 
   geom_point()+
@@ -526,6 +657,7 @@ ggplot(mtcars, aes(x=wt, y=mpg)) +
 ```
 
 Loess method
+
 ```{r}
 ggplot(mtcars, aes(x=wt, y=mpg)) + 
   geom_point()+
@@ -533,13 +665,14 @@ ggplot(mtcars, aes(x=wt, y=mpg)) +
 ```
 
 Extend the regression lines
+
 ```{r}
 ggplot(mtcars, aes(x=wt, y=mpg, color=cyl, shape=cyl)) +
   geom_point() + 
   geom_smooth(method=lm, se=FALSE, fullrange=TRUE)
 ```
 
-# Heat Maps in R 
+# Heat Maps in R
 
 Heat map for correlational tables
 
@@ -551,24 +684,28 @@ head(mydata)
 ```
 
 extract correlational table and round to two decimal places
+
 ```{r}
 cormat <- round(cor(mydata),2)
 head(cormat)
 ```
 
 reconfigure the data
+
 ```{r}
 melted_cormat <- melt(cormat)
 head(melted_cormat)
 ```
 
 plot the correlations
+
 ```{r}
 ggplot(data = melted_cormat, aes(x=X1, y=X2, fill=value)) + 
   geom_tile()
 ```
 
 Functions to get lower triangle of the correlation matrix
+
 ```{r}
 get_lower_tri<-function(cormat){
   cormat[upper.tri(cormat)] <- NA
@@ -582,6 +719,7 @@ get_upper_tri <- function(cormat){
 ```
 
 Let's extract the upper diagonal
+
 ```{r}
 upper_tri <- get_upper_tri(cormat)
 upper_tri
@@ -590,12 +728,14 @@ melted_cormat
 ```
 
 Plot it
+
 ```{r}
 ggplot(data = melted_cormat, aes(x=X1, y=X2, fill=value)) + 
   geom_tile()
 ```
 
 Heatmap
+
 ```{r}
 ggplot(data = melted_cormat, aes(X2, X1, fill = value))+
   geom_tile(color = "white")+
@@ -609,6 +749,7 @@ ggplot(data = melted_cormat, aes(X2, X1, fill = value))+
 ```
 
 Reorder the correlations
+
 ```{r}
 reorder_cormat <- function(cormat){
   # Use correlation between variables as distance
@@ -625,6 +766,7 @@ melted_cormat <- melt(upper_tri, na.rm = TRUE)
 ```
 
 Create a ggheatmap
+
 ```{r}
 ggheatmap <- ggplot(melted_cormat, aes(X2, X1, fill = value))+
   geom_tile(color = "white")+
@@ -638,6 +780,7 @@ ggheatmap <- ggplot(melted_cormat, aes(X2, X1, fill = value))+
 ```
 
 Print the heatmap
+
 ```{r}
 print(ggheatmap)
 ```
@@ -659,22 +802,24 @@ ggheatmap +
                                title.position = "top", title.hjust = 0.5))
 ```
 
-
-# Time Series Visualizations 
+# Time Series Visualizations
 
 Import some sample time series data from ggplots2
+
 ```{r}
 econ <- economics[, c("date", "psavert", "uempmed")]
 econ <- econ[lubridate::year(econ$date) %in% c(1990:2015), ]
 ```
 
 labels and breaks for X axis text
+
 ```{r}
 brks <- econ$date[seq(1, length(econ$date), 12)]
 lbls <- lubridate::year(brks)
 ```
 
 Plot the time series and add titles, caption, and legend
+
 ```{r}
 timeseries <-ggplot(econ, aes(x=date)) + 
                 geom_line(aes(y=psavert, col="Personal Savings Rate")) + 
@@ -694,6 +839,7 @@ timeseries
 # How to save figures and export out of R
 
 As a .pdf
+
 ```{r}
 pdf("MyExperiment.pdf")
 exp
@@ -701,17 +847,18 @@ dev.off()
 ```
 
 As a jpeg
+
 ```{r}
 jpeg("Timeseries.jpg", width = 1300, height = 500)
 timeseries
 dev.off()
 ```
 
-
 *Great resources:*
 
-- https://www.rstudio.com/wp-content/uploads/2015/03/ggplot2-cheatsheet.pdf
-- https://ggplot2.tidyverse.org/ 
-- https://cran.r-project.org/package=ggplot2/ggplot2.pdf 
-- http://zevross.com/blog/2014/08/04/beautiful-plotting-in-r-a-ggplot2-cheatsheet-3/ 
-- http://www.cookbook-r.com/Graphs/Bar_and_line_graphs_(ggplot2)/ 
+-   https://www.rstudio.com/wp-content/uploads/2015/03/ggplot2-cheatsheet.pdf
+-   https://ggplot2.tidyverse.org/
+-   https://cran.r-project.org/package=ggplot2/ggplot2.pdf
+-   http://zevross.com/blog/2014/08/04/beautiful-plotting-in-r-a-ggplot2-cheatsheet-3/
+-   http://www.cookbook-r.com/Graphs/Bar_and_line_graphs\_(ggplot2)/
+-   http://www.cookbook-r.com/Graphs/Legends\_(ggplot2)/#modifying-the-appearance-of-the-legend-title-and-labels
