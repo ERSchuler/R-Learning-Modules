@@ -1,2 +1,3 @@
 # R_Learning_Modules
-Series of learning modules created for the American University community. Reposted here.
+
+A series of learning modules and workshops created for the American University community.
