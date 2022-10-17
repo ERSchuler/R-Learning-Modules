@@ -3,6 +3,7 @@ title: "Introduction to Multilevel Modeling in R"
 author: "Eric R. Schuler, Ph.D."
 date: "`r Sys.Date()`"
 format: gfm
+prefer-html: true
 ---
 
 **Title:** Basics of Multilevel Modeling in R
@@ -22,7 +23,7 @@ This workshop assumes familiarity with R (if not, please see our On-Demand Works
 
 Set Working Directory
 ```{r}
-setwd("C:/Users/eschuler/Desktop/R MLM 2022/")
+setwd("C:/Users/eschuler/Documents/GitHub/R-Learning-Modules/6. Multilevel Modeling")
 ```
 
 We will now check to see if the packages we need are already installed (if any are missing they will be added)
